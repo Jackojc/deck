@@ -5,7 +5,7 @@ include config.mk
 
 all: deck
 
-deck.o: deck.asm
+deck.o: deck.asm macros.asm
 	$(ASM) $(DECK_FLAGS) $< -o deck.o
 
 deck: deck.o
