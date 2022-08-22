@@ -6,7 +6,10 @@ global _start
 ; CODE
 section .text
 _start:
-	mov rax, 60
-	xor rdi, rdi
-	syscall
+m_begin
+
+	m_push 0h11223344aabbccdd
+	m_hex
+
+m_end
 

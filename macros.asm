@@ -6,6 +6,7 @@
 
 ; `rax` = top of stack
 ; `r8`  = continuation register
+; `rbp` = base of stack
 
 
 ; STACK PRIMITIVES
@@ -240,6 +241,15 @@
 
 
 ; UTILITIES
+%macro m_count 0 ; ( -> x )
+; Pushes the stack element count to the stack.
+	mov rbx, rbp
+	sub rbx, rsp
+	shr rbx, 3   ; Divide by `8`.
+	push rax
+	mov rax, rbx
+%endmacro
+
 %macro m_choose 0 ; ( t f cond -> q )
 ; Checks the condition and collapses to either
 ; `t` or `f` based on its value.
@@ -266,6 +276,14 @@
 	mov rax, rbx
 	m_pop
 	jmp rbx
+%endmacro
+
+%macro m_exit 1 ; ( -> )
+; Exit syscall.
+; We overwrite the top of stack here but we're exiting so who cares.
+	mov rax, 60
+	mov rdi, %1
+	syscall
 %endmacro
 
 %macro m_read 0 ; ( -> x )
@@ -305,6 +323,55 @@
 	pop rax
 %endmacro
 
+%macro m_hex 0 ; ( x -> )
+; Writes a quad word to stdout in hex format without
+; leading zeroes.
+; We take one nibble at a time from the value at the
+; top of the stack in `rax`. We subtract `10` from the
+; nibble in order to overflow and shift the values `0`-`9`
+; up to `0xf5`-`0xff`. Doing this lets us check the first bit
+; to see if this is a numeric digit (`0`-`9`) or an alphabetic
+; digit (`a`-`f`). We seperate this bit out and shift it down to
+; take on either value of `0` or `1`. When multipled by `0x27`, we
+; get either `0x27` or `0`. Adding `0x61` shifts the value up into
+; the ASCII range for `a`-`z` and we can then subtract the value in
+; `rcx` to bring us back down to the ASCII range `0`-`9` when the
+; value is a numeric digit. We write this to stdout, shift the
+; original value to the right by 4 bits to give us the next nibble
+; and then repeat until zero.
+	%%take:
+	mov rbx, rax ; Extract nibble.
+	and rbx, 0h0f
+	sub rbx, 10
+
+	mov rcx, rbx ; Set `rcx` to `1` (numeric) or `0` (alphabetic)
+	and rcx, 0h80
+	shr rcx, 7
+	imul rcx, 0h27
+
+	add rbx, 0h61 ; Shift up to the ASCII range for `a`-`z`.
+	sub rbx, rcx
+
+	push rax ; Save original value.
+	push rbx ; Push byte to be written.
+
+	; Write the byte on top of the stack.
+	mov rax, 1   ; write
+	mov rdi, 1   ; stdout
+	mov rsi, rsp ; source
+	mov rdx, 1   ; count
+	syscall
+
+	pop rbx
+	pop rax
+
+	shr rax, 4 ; Shift to the next nibble.
+	cmp rax, 0 ; Repeat while greater than zero.
+	jnz %%take
+
+	pop rax ; Move up the next value in the stack.
+%endmacro
+
 %macro m_min 0 ; ( a b -> q )
 ; Collapses to the minimum of the top two stack
 ; values.
@@ -320,3 +387,14 @@
 	cmp rax, rbx
 	cmovg rax, rbx
 %endmacro
+
+
+; BOILERPLATE
+%macro m_begin 0
+	mov rbp, rsp
+%endmacro
+
+%macro m_end 0
+	m_exit 0
+%endmacro
+
