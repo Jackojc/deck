@@ -339,6 +339,8 @@
 ; value is a numeric digit. We write this to stdout, shift the
 ; original value to the right by 4 bits to give us the next nibble
 ; and then repeat until zero.
+	mov r8, rsp ; Save stack position.
+
 	%%take:
 	mov rbx, rax ; Extract nibble.
 	and rbx, 0h0f
@@ -352,23 +354,21 @@
 	add rbx, 0h61 ; Shift up to the ASCII range for `a`-`z`.
 	sub rbx, rcx
 
-	push rax ; Save original value.
-	push rbx ; Push byte to be written.
-
-	; Write the byte on top of the stack.
-	mov rax, 1   ; write
-	mov rdi, 1   ; stdout
-	mov rsi, rsp ; source
-	mov rdx, 1   ; count
-	syscall
-
-	pop rbx
-	pop rax
+	push bx ; Push byte to stack.
 
 	shr rax, 4 ; Shift to the next nibble.
 	cmp rax, 0 ; Repeat while greater than zero.
 	jnz %%take
 
+	; Write the byte on top of the stack.
+	mov rax, 1   ; write
+	mov rdi, 1   ; stdout
+	mov rdx, r8  ; count
+	sub rdx, rsp
+	mov rsi, rsp ; source
+	syscall
+
+	mov rsp, r8 ; Restore the stack to before we wrote the characters.
 	pop rax ; Move up the next value in the stack.
 %endmacro
 

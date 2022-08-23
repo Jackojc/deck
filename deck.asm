@@ -8,7 +8,9 @@ section .text
 _start:
 m_begin
 
-	m_push 0h11223344aabbccdd
+	m_push 0hcd
+	m_push 0hab
+	m_hex
 	m_hex
 
 m_end
