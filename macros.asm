@@ -274,8 +274,23 @@
 %macro m_go 0 ; ( x -> )
 ; Jumps to the address on the top of the stack.
 	mov rax, rbx
-	m_pop
+	pop rax
 	jmp rbx
+%endmacro
+
+%macro m_if 0 ; ( x cond -> )
+; Jump to address if top of stack is truthy.
+; These instructions may seem suboptimal but it's due
+; to a quirk in the x86 family of conditional `mov`
+; instructions not allowing use of far jumps. To
+; get around this, a conditional jump is used to
+; guard a far jump.
+	test rax, rax
+	pop rcx
+	pop rax
+	jz %%skip
+	jmp rcx
+	%%skip:
 %endmacro
 
 %macro m_exit 1 ; ( -> )
@@ -331,28 +346,24 @@
 ; nibble in order to overflow and shift the values `0`-`9`
 ; up to `0xf5`-`0xff`. Doing this lets us check the first bit
 ; to see if this is a numeric digit (`0`-`9`) or an alphabetic
-; digit (`a`-`f`). We seperate this bit out and shift it down to
-; take on either value of `0` or `1`. When multipled by `0x27`, we
-; get either `0x27` or `0`. Adding `0x61` shifts the value up into
-; the ASCII range for `a`-`z` and we can then subtract the value in
-; `rcx` to bring us back down to the ASCII range `0`-`9` when the
-; value is a numeric digit. We write this to stdout, shift the
-; original value to the right by 4 bits to give us the next nibble
-; and then repeat until zero.
+; digit (`a`-`f`). We shift the literal `0x27` right by this
+; value so effectively it evaluates to either `0x27` or `0`.
+; We can then add this value on top of adding `0x3a` to bring
+; everything into the appropriate ASCII ranges and that gives
+; us our character.
 	mov r8, rsp ; Save stack position.
 
 	%%take:
-	mov rbx, rax ; Extract nibble.
+	mov rbx, rax ; n = (c & 0x0f) - 10
 	and rbx, 0h0f
 	sub rbx, 10
 
-	mov rcx, rbx ; Set `rcx` to `1` (numeric) or `0` (alphabetic)
+	mov rcx, rbx  ; x = 0x27 >> (n & 0x80)
 	and rcx, 0h80
-	shr rcx, 7
-	imul rcx, 0h27
+	mov rdx, 0h27
+	shr rdx, cl
 
-	add rbx, 0h61 ; Shift up to the ASCII range for `a`-`z`.
-	sub rbx, rcx
+	lea rbx, [rbx + rdx + 0x3a] ; n + 0x3a + x
 
 	push bx ; Push byte to stack.
 
