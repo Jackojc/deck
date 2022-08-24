@@ -5,14 +5,15 @@ include config.mk
 
 all: deck
 
-deck.o: deck.asm macros.asm
-	$(ASM) $(DECK_FLAGS) $< -o deck.o
+deck.o: deck.dk macros.asm
+	./dcc < $< > deck.asm
+	$(ASM) $(DECK_FLAGS) deck.asm -o deck.o
 
 deck: deck.o
 	$(LD) -o $@ deck.o $(DECK_LDFLAGS)
 
 clean:
-	rm -rf deck deck.o deck-$(VERSION).tar.gz
+	rm -rf deck deck.o deck-$(VERSION).tar.gz deck.asm
 
 dist: clean deck
 	mkdir -p deck-$(VERSION)

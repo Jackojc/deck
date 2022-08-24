@@ -1,0 +1,61 @@
+#!/usr/bin/env sh
+
+cat parts/head.asm
+
+cat | tr -s '[:space:]' '\n' | sed -E \
+-e 's/^\+$/m_add/g' \
+-e 's/^-$/m_sub/g' \
+-e 's/^\*$/m_mul/g' \
+-e 's/^\/$/m_div/g' \
+-e 's/^<<$/m_lsh/g' \
+-e 's/^>>$/m_rsh/g' \
+-e 's/^\++$/m_inc/g' \
+-e 's/^--$/m_dec/g' \
+\
+-e 's/^&$/m_band/g' \
+-e 's/^\|$/m_bor/g' \
+-e 's/^\^$/m_bxor/g' \
+-e 's/^~$/m_bnot/g' \
+\
+-e 's/^and$/m_and/g' \
+-e 's/^or$/m_or/g' \
+-e 's/^xor$/m_xor/g' \
+-e 's/^not$/m_not/g' \
+\
+-e 's/^=$/m_eq/g' \
+-e 's/^!=$/m_neq/g' \
+-e 's/^<$/m_lt/g' \
+-e 's/^<=$/m_lte/g' \
+-e 's/^>$/m_gt/g' \
+-e 's/^>=$/m_gte/g' \
+\
+-e 's/^#$/m_count/g' \
+-e 's/^\?$/m_choose/g' \
+-e 's/^\.$/m_go/g' \
+\
+-e 's/^@([[:alpha:]][[:alnum:]]+)$/\1:\nm_fn_begin/g' \
+-e 's/^end$/m_fn_end/g' \
+\
+-e 's/^([[:digit:]]+)$/m_push \1/g' \
+\
+-e 's/^end$/m_fn_end/g' \
+-e 's/^drop$/m_pop/g' \
+-e 's/^pop$/m_pop/g' \
+-e 's/^swap$/m_swap/g' \
+-e 's/^dup$/m_dup/g' \
+-e 's/^over$/m_over/g' \
+-e 's/^nip$/m_nip/g' \
+-e 's/^true$/m_true/g' \
+-e 's/^false$/m_false/g' \
+-e 's/^neg$/m_neg/g' \
+-e 's/^abs$/m_abs/g' \
+-e 's/^here$/m_here/g' \
+-e 's/^if$/m_if/g' \
+-e 's/^exit$/m_exit/g' \
+-e 's/^read$/m_read/g' \
+-e 's/^write$/m_write/g' \
+-e 's/^hex$/m_hex/g' \
+-e 's/^min$/m_min/g' \
+-e 's/^max$/m_max/g'
+
+cat parts/foot.asm

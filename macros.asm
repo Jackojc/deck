@@ -5,7 +5,6 @@
 ; either `rax` or the actual stack.
 
 ; `rax` = top of stack
-; `r8`  = continuation register
 ; `rbp` = base of stack
 
 
@@ -21,11 +20,6 @@
 ; Pop the top element of the stack.
 ; Popping to `rax` implicitly overwrites the top element.
 	pop rax
-%endmacro
-
-%macro m_drop 0 ; ( x -> )
-; Alias for `m_pop`.
-	m_pop
 %endmacro
 
 %macro m_swap 0 ; ( a b -> b a )
@@ -45,7 +39,7 @@
 ; Copy the element over the top element to the top
 ; of the stack.
 	push rax
-	mov rax, [rsp - 8]
+	mov rax, [rsp + 8]
 %endmacro
 
 %macro m_nip 0 ; ( a b -> b )
@@ -129,9 +123,9 @@
 
 %macro m_abs 0 ; ( x -> y )
 ; Return the absolute value of the top stack element.
-	pop rbx
-	xor rax, rbx
-	sub rax, rbx
+	mov rbx, rax
+	neg rax
+	cmovl rax, rbx
 %endmacro
 
 
@@ -358,8 +352,9 @@
 	and rbx, 0h0f
 	sub rbx, 10
 
-	mov rcx, rbx  ; x = 0x27 >> (n & 0x80)
+	mov rcx, rbx  ; x = 0x27 >> ((n & 0x80) >> 4)
 	and rcx, 0h80
+	shr rcx, 4
 	mov rdx, 0h27
 	shr rdx, cl
 
@@ -401,11 +396,18 @@
 
 
 ; BOILERPLATE
-%macro m_begin 0
+%macro m_fn_begin 0
+%endmacro
+
+%macro m_fn_end 0
+	m_go
+%endmacro
+
+%macro m_header 0
 	mov rbp, rsp
 %endmacro
 
-%macro m_end 0
+%macro m_footer 0
 	m_exit 0
 %endmacro
 
