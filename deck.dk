@@ -1,7 +1,1 @@
-@main
-	foo
-end
-
-@foo
-	42 exit
-end
+0 @loop ++ dup dup hex 5 < loop finish ? . @finish

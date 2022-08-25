@@ -65,16 +65,19 @@
 ; the stack.
 %macro m_add 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	add rax, rbx
 %endmacro
 
 %macro m_sub 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	sub rax, rbx
 %endmacro
 
 %macro m_mul 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	imul rax, rbx
 %endmacro
 
@@ -82,6 +85,7 @@
 ; We need to sign extend `rax` to `rdx` because
 ; `idiv` operates on 128 bits.
 	pop rbx
+	xchg rax, rbx
 	cqo
 	idiv rbx
 %endmacro
@@ -91,6 +95,7 @@
 ; here we move the remainder (stored in `rdx`) into `rax`
 ; which is the top of the stack.
 	pop rbx
+	xchg rax, rbx
 	cqo
 	idiv rbx
 	mov rax, rdx
@@ -98,11 +103,13 @@
 
 %macro m_lsh 0 ; ( a b -> q )
 	pop rcx
+	xchg rax, rcx
 	sal rax, cl
 %endmacro
 
 %macro m_rsh 0 ; ( a b -> q )
 	pop rcx
+	xchg rax, rcx
 	sar rax, cl
 %endmacro
 
@@ -133,6 +140,7 @@
 ; These operations work on booleans.
 %macro m_and 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	test rax, rax
 	setne al
 	test rbx, rbx
@@ -143,6 +151,7 @@
 
 %macro m_or 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	or rax, rbx
 	setne al
 	movzx rax, al
@@ -150,6 +159,7 @@
 
 %macro m_xor 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	xor rax, rbx
 	setne al
 	movzx rax, al
@@ -166,16 +176,19 @@
 ; These operations work on individual bits.
 %macro m_band 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	and rax, rbx
 %endmacro
 
 %macro m_bor 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	or rax, rbx
 %endmacro
 
 %macro m_bxor 0 ; ( a b -> q )
 	pop rbx
+	xchg rax, rbx
 	xor rax, rbx
 %endmacro
 
@@ -190,7 +203,8 @@
 ; for equality and then collapses to either
 ; `1` or `0`.
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	sete al
 	movzx rax, al
 %endmacro
@@ -200,35 +214,40 @@
 ; for inequality and then collapses to either
 ; `1` or `0`.
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	setne al
 	movzx rax, al
 %endmacro
 
 %macro m_lt 0 ; ( a b -> q )
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	setl al
 	movzx rax, al
 %endmacro
 
 %macro m_lte 0 ; ( a b -> q )
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	setle al
 	movzx rax, al
 %endmacro
 
 %macro m_gt 0 ; ( a b -> q )
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	setg al
 	movzx rax, al
 %endmacro
 
 %macro m_gte 0 ; ( a b -> q )
 	pop rbx
-	test rax, rbx
+	xchg rax, rbx
+	cmp rax, rbx
 	setge al
 	movzx rax, al
 %endmacro
@@ -244,25 +263,23 @@
 	mov rax, rbx
 %endmacro
 
-%macro m_choose 0 ; ( t f cond -> q )
+%macro m_choose 0 ; ( cond t f -> q )
 ; Checks the condition and collapses to either
 ; `t` or `f` based on its value.
 ; We test if `rax` is zero first and then replace
 ; `rax` with the top of stack and move the next element
 ; into `rbx`. The zero flag is still set at this point
 ; so we use `cmov` to conditionally move `rbx` into `rax`.
-	test rax, rax
-
-	mov rax, [rsp]     ; false value
-	mov rbx, [rsp - 8] ; true value
-
-	cmovne rax, rbx    ; move `rbx` to `rax` if `rax` != 0
-	sub rsp, 16
+	pop rbx
+	pop rcx
+	cmp rcx, 1
+	cmove rax, rbx
 %endmacro
 
 %macro m_here 0 ; ( -> x )
 ; Pushes the current instruction pointer to the stack.
-	m_push rip
+	push rax
+	lea rax, [rel + $+0]
 %endmacro
 
 %macro m_go 0 ; ( x -> )
@@ -272,16 +289,17 @@
 	jmp rbx
 %endmacro
 
-%macro m_if 0 ; ( x cond -> )
+%macro m_if 0 ; ( cond x -> )
 ; Jump to address if top of stack is truthy.
 ; These instructions may seem suboptimal but it's due
 ; to a quirk in the x86 family of conditional `mov`
 ; instructions not allowing use of far jumps. To
 ; get around this, a conditional jump is used to
 ; guard a far jump.
-	test rax, rax
-	pop rcx
+	mov rcx, rax
+	pop rbx
 	pop rax
+	test rbx, rbx
 	jz %%skip
 	jmp rcx
 	%%skip:
@@ -346,6 +364,7 @@
 ; everything into the appropriate ASCII ranges and that gives
 ; us our character.
 	mov r8, rsp ; Save stack position.
+	push 10  ; \n
 
 	%%take:
 	mov rbx, rax ; n = (c & 0x0f) - 10
@@ -360,13 +379,12 @@
 
 	lea rbx, [rbx + rdx + 0x3a] ; n + 0x3a + x
 
-	push bx ; Push byte to stack.
+	push bx
 
-	shr rax, 4 ; Shift to the next nibble.
-	cmp rax, 0 ; Repeat while greater than zero.
+	shr rax, 4
+	cmp rax, 0
 	jnz %%take
 
-	; Write the byte on top of the stack.
 	mov rax, 1   ; write
 	mov rdi, 1   ; stdout
 	mov rdx, r8  ; count
@@ -406,7 +424,6 @@
 %macro m_header 0
 	mov rbp, rsp
 	mov rax, 0
-	jmp main
 %endmacro
 
 %macro m_footer 0
