@@ -2,7 +2,7 @@
 
 cat parts/head.asm
 
-cat | tr -s '[:space:]' '\n' | sed -E \
+cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^\+$/m_add/g' \
 -e 's/^-$/m_sub/g' \
 -e 's/^\*$/m_mul/g' \
@@ -33,7 +33,7 @@ cat | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^\?$/m_choose/g' \
 -e 's/^\.$/m_go/g' \
 \
--e 's/^@([[:alpha:]][[:alnum:]]+)$/\1:/g' \
+-e 's/^@([[:alpha:]][[:alnum:]]*)$/\1:/g' \
 -e 's/^([[:digit:]]+)$/m_push \1/g' \
 \
 -e 's/^end$/m_fn_end/g' \
@@ -56,6 +56,6 @@ cat | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^min$/m_min/g' \
 -e 's/^max$/m_max/g' \
 \
--e 's/^([[:alpha:]][[:alnum:]]+)$/m_push \1/g'
+-e 's/^([[:alpha:]][[:alnum:]]*)$/m_push \1/g'
 
 cat parts/foot.asm

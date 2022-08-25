@@ -47,6 +47,12 @@
 	sub rsp, 8
 %endmacro
 
+%macro m_clear 0 ; ( ... -> )
+; Empty the stack.
+	mov rsp, rbp
+	mov rax, 0
+%endmacro
+
 
 ; CONSTANTS
 %macro m_true 0 ; ( -> x )
@@ -401,7 +407,7 @@
 ; values.
 	pop rbx
 	cmp rax, rbx
-	cmovl rax, rbx
+	cmovg rax, rbx
 %endmacro
 
 %macro m_max 0 ; ( a b -> q )
@@ -409,18 +415,11 @@
 ; values.
 	pop rbx
 	cmp rax, rbx
-	cmovg rax, rbx
+	cmovl rax, rbx
 %endmacro
 
 
 ; BOILERPLATE
-%macro m_fn_begin 0
-%endmacro
-
-%macro m_fn_end 0
-	m_go
-%endmacro
-
 %macro m_header 0
 	mov rbp, rsp
 	mov rax, 0

@@ -1,1 +1,13 @@
-0 @loop ++ dup dup hex 5 < loop finish ? . @finish
+1 2 max hex
+
+
+; here
+	; 0 swap 0 # hex swap .
+
+; 0 here swap ++ dup hex 10 != swap f ? .
+; @f
+
+; 0 @loop
+	; ++ dup dup hex 20 <
+	; loop finish ? .
+; @finish
