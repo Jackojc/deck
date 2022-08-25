@@ -5,12 +5,15 @@ include config.mk
 
 all: deck
 
-deck.o: deck.dk macros.asm
+deck.o: deck.dk macros.asm config.mk Makefile
 	./dcc < $< > deck.asm
 	$(ASM) $(DECK_FLAGS) deck.asm -o deck.o
 
 deck: deck.o
 	$(LD) -o $@ deck.o $(DECK_LDFLAGS)
+
+dis:
+	objdump --insn-width=15 --visualize-jumps=color -w -M intel -d deck
 
 clean:
 	rm -rf deck deck.o deck-$(VERSION).tar.gz deck.asm
@@ -34,5 +37,5 @@ uninstall:
 	rm -f $(DESTDIR)$(PREFIX)/bin/deck
 	rm -f $(DESTDIR)$(MANPREFIX)/man1/deck.1
 
-.PHONY: all clean dist install uninstall
+.PHONY: all dis clean dist install uninstall
 

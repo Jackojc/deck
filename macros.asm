@@ -267,7 +267,7 @@
 
 %macro m_go 0 ; ( x -> )
 ; Jumps to the address on the top of the stack.
-	mov rax, rbx
+	mov rbx, rax
 	pop rax
 	jmp rbx
 %endmacro
@@ -287,11 +287,11 @@
 	%%skip:
 %endmacro
 
-%macro m_exit 1 ; ( -> )
+%macro m_exit 0 ; ( x -> )
 ; Exit syscall.
 ; We overwrite the top of stack here but we're exiting so who cares.
+	mov rdi, rax
 	mov rax, 60
-	mov rdi, %1
 	syscall
 %endmacro
 
@@ -405,9 +405,13 @@
 
 %macro m_header 0
 	mov rbp, rsp
+	mov rax, 0
+	jmp main
 %endmacro
 
 %macro m_footer 0
-	m_exit 0
+	mov rax, 60
+	xor rdi, rdi
+	syscall
 %endmacro
 

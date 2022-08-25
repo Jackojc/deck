@@ -1,7 +1,7 @@
 @main
-	1 2 + 3 *
+	foo
 end
 
 @foo
-
+	42 exit
 end
