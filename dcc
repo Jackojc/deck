@@ -1,61 +1,67 @@
 #!/usr/bin/env sh
 
-cat parts/head.asm
+echo "%include \"builtins/core.asm\""
+echo "%include \"builtins/stack.asm\""
+echo "%include \"builtins/arith.asm\""
+echo "%include \"builtins/util.asm\""
+echo "%include \"stdlib/util.asm\""
+echo "%include \"stdlib/io.asm\""
+echo "___res_header"
 
 cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
--e 's/^\+$/m_add/g' \
--e 's/^-$/m_sub/g' \
--e 's/^\*$/m_mul/g' \
--e 's/^\/$/m_div/g' \
--e 's/^<<$/m_lsh/g' \
--e 's/^>>$/m_rsh/g' \
--e 's/^\++$/m_inc/g' \
--e 's/^--$/m_dec/g' \
+-e 's/^\+$/___add/g' \
+-e 's/^-$/___sub/g' \
+-e 's/^\*$/___mul/g' \
+-e 's/^\/$/___div/g' \
+-e 's/^<<$/___lsh/g' \
+-e 's/^>>$/___rsh/g' \
+-e 's/^\+\+$/___inc/g' \
+-e 's/^--$/___dec/g' \
 \
--e 's/^&$/m_band/g' \
--e 's/^\|$/m_bor/g' \
--e 's/^\^$/m_bxor/g' \
--e 's/^~$/m_bnot/g' \
+-e 's/^&$/___band/g' \
+-e 's/^\|$/___bor/g' \
+-e 's/^\^$/___bxor/g' \
+-e 's/^~$/___bnot/g' \
 \
--e 's/^and$/m_and/g' \
--e 's/^or$/m_or/g' \
--e 's/^xor$/m_xor/g' \
--e 's/^not$/m_not/g' \
+-e 's/^and$/___and/g' \
+-e 's/^or$/___or/g' \
+-e 's/^xor$/___xor/g' \
+-e 's/^not$/___not/g' \
 \
--e 's/^=$/m_eq/g' \
--e 's/^!=$/m_neq/g' \
--e 's/^<$/m_lt/g' \
--e 's/^<=$/m_lte/g' \
--e 's/^>$/m_gt/g' \
--e 's/^>=$/m_gte/g' \
+-e 's/^=$/___eq/g' \
+-e 's/^!=$/___neq/g' \
+-e 's/^<$/___lt/g' \
+-e 's/^<=$/___lte/g' \
+-e 's/^>$/___gt/g' \
+-e 's/^>=$/___gte/g' \
 \
--e 's/^#$/m_count/g' \
--e 's/^\?$/m_choose/g' \
--e 's/^\.$/m_go/g' \
+-e 's/^neg$/___neg/g' \
+-e 's/^abs$/___abs/g' \
+-e 's/^min$/___min/g' \
+-e 's/^max$/___max/g' \
+-e 's/^clear$/___clear/g' \
+-e 's/^here$/___here/g' \
+-e 's/^if$/___if/g' \
+-e 's/^#$/___count/g' \
+-e 's/^\?$/___choose/g' \
+-e 's/^\.$/___go/g' \
 \
--e 's/^@([[:alpha:]][[:alnum:]]*)$/\1:/g' \
--e 's/^([[:digit:]]+)$/m_push \1/g' \
+-e 's/^true$/___true/g' \
+-e 's/^false$/___false/g' \
 \
--e 's/^end$/m_fn_end/g' \
--e 's/^drop$/m_pop/g' \
--e 's/^pop$/m_pop/g' \
--e 's/^swap$/m_swap/g' \
--e 's/^dup$/m_dup/g' \
--e 's/^over$/m_over/g' \
--e 's/^nip$/m_nip/g' \
--e 's/^true$/m_true/g' \
--e 's/^false$/m_false/g' \
--e 's/^neg$/m_neg/g' \
--e 's/^abs$/m_abs/g' \
--e 's/^here$/m_here/g' \
--e 's/^if$/m_if/g' \
--e 's/^exit$/m_exit/g' \
--e 's/^read$/m_read/g' \
--e 's/^write$/m_write/g' \
--e 's/^hex$/m_hex/g' \
--e 's/^min$/m_min/g' \
--e 's/^max$/m_max/g' \
+-e 's/^at$/___at/g' \
+-e 's/^drop$/___pop/g' \
+-e 's/^pop$/___pop/g' \
+-e 's/^swap$/___swap/g' \
+-e 's/^dup$/___dup/g' \
+-e 's/^over$/___over/g' \
+-e 's/^nip$/___nip/g' \
+-e 's/^rotl$/___rotl/g' \
+-e 's/^rotr$/___rotr/g' \
 \
--e 's/^([[:alpha:]][[:alnum:]]*)$/m_push \1/g'
+-e 's/^([[:alpha:]][[:graph:]]*)$/___push \1/g' \
+-e 's/^&([[:alpha:]][[:graph:]]*)$/___call \1/g' \
+-e 's/^@([[:alpha:]][[:graph:]]*)$/\1:\n___res_func/g' \
+-e 's/^([[:digit:]]+)$/___push \1/g'
 
-cat parts/foot.asm
+echo "___res_footer"

@@ -13,7 +13,7 @@ LD=ld
 DBG=yes
 
 ifeq ($(DBG),no)
-	DECK_FLAGS=-O0 -felf64
+	DECK_FLAGS=-O3 -felf64
 	DECK_LDFLAGS=-s -n --gc-sections $(LIB) $(LDFLAGS)
 else ifeq ($(DBG),yes)
 	DECK_FLAGS=-O0 -felf64 -F dwarf -g

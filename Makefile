@@ -5,7 +5,7 @@ include config.mk
 
 all: deck
 
-deck.o: deck.dk macros.asm config.mk Makefile
+deck.o: deck.dk stdlib/* builtins/* config.mk Makefile dcc
 	./dcc < $< > deck.asm
 	$(ASM) $(DECK_FLAGS) deck.asm -o deck.o
 

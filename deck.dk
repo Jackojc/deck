@@ -1,13 +1,25 @@
-1 2 max hex
+; @iota 0 swap 0 swap @iota_loop
 
+; 1 2 3
+; 0 at &io_hexln
+
+
+; 1 2 3 rotr drop drop io_hexln
 
 ; here
-	; 0 swap 0 # hex swap .
+; 	0 swap 0 # io_hexln swap .
 
-; 0 here swap ++ dup hex 10 != swap f ? .
-; @f
+0 here
+	swap ++
+	dup &io_hexln
+	dup 10 !=  ; [ here n b ]
+	2 at f ? . @f
 
-; 0 @loop
-	; ++ dup dup hex 20 <
-	; loop finish ? .
-; @finish
+; 255 &io_hexln ; FF
+; 65535 &io_hexln ; FFFF
+; 16777215 &io_hexln ; FFFFFF
+; 4294967295 &io_hexln ; FFFFFFFF
+
+; 0 0 @loop
+; 	++ dup dup &io_hexln 5 <
+; 	loop sys_exit ? .
