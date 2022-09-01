@@ -96,3 +96,44 @@ io_hexln: ; ( x cont -> )
 	jmp r10
 
 
+io_intln: ; ( x cont -> )
+; Writes a quad word to stdout in decimal format without
+; leading zeroes.
+; The surrounding boilerplate functions much the same as
+; `io_hexln` but the core of the algorithm is a bit different.
+; We take advantage of the fact that x86 idiv computes both
+; division and remainder together. We can simply add ASCII
+; '0' to the remainder to get the digit to print and the
+; number is divided by ten to move to the next digit.
+	mov r10, rax
+	pop rax
+	mov r8, rsp   ; Save stack position.
+	mov rbx, 10
+
+	dec rsp  ; \n
+	mov byte [rsp], 10
+
+	___io_intln_take:
+	cqo
+	idiv rbx
+	add rdx, 0h30
+
+	dec rsp  ; Push character.
+	mov [rsp], dl
+
+	cmp rax, 0
+	jnz ___io_intln_take
+
+	mov rax, 1   ; write
+	mov rdi, 1   ; stdout
+	mov rdx, r8  ; count
+	sub rdx, rsp
+	mov rsi, rsp ; source
+	syscall
+
+	mov rsp, r8
+	pop rax
+
+	jmp r10
+
+

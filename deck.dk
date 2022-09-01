@@ -1,7 +1,55 @@
-; @iota 0 swap 0 swap @iota_loop
+1 2 3
+>| >| >|
+; |> |> |>
+&io_intln
+&io_intln
+&io_intln
+; &io_intln
+; &io_intln
+; &io_intln
 
-; 1 2 3
-; 0 at &io_hexln
+; 5 &iota
+
+; &io_intln
+; &io_intln
+; &io_intln
+; &io_intln
+; &io_intln
+
+; &io_intln
+; &io_intln
+; &io_intln
+; &io_intln
+; &io_intln
+
+; implement routine to print the entire stack
+; like: `[ a b c ]`
+
+0 sys_exit
+
+@iota
+	>| 0 swap >|
+	@iota_start__
+		dup |> dup >| >= iota_end__ if
+		dup ++ iota_start__ .
+	@iota_end__
+	|> pop pop |> .
+
+
+; @iota 0 @iota__
+; 	1 get dup 0 >= iota_end__ if - dup
+; 	&iota__
+; @iota_end__ .
+
+; 5 5 5
+; 10 0 set
+; &io_intln
+; &io_intln
+; &io_intln
+
+; 1 2 3 # &io_intln
+
+; 111 &io_intln
 
 
 ; 1 2 3 rotr drop drop io_hexln
@@ -9,17 +57,15 @@
 ; here
 ; 	0 swap 0 # io_hexln swap .
 
-0 here
-	swap ++
-	dup &io_hexln
-	dup 10 !=  ; [ here n b ]
-	2 at f ? . @f
+; 0 here swap
+; 	dup &io_intln ++
+; 	dup 10 <=
+; 	2 get f ? .
+; @f
 
 ; 255 &io_hexln ; FF
 ; 65535 &io_hexln ; FFFF
 ; 16777215 &io_hexln ; FFFFFF
 ; 4294967295 &io_hexln ; FFFFFFFF
 
-; 0 0 @loop
-; 	++ dup dup &io_hexln 5 <
-; 	loop sys_exit ? .
+; 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .

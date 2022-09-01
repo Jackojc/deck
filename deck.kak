@@ -8,11 +8,11 @@ provide-module -override deck %{
 	add-highlighter shared/deck/comment/ fill comment
 
 	# literal
-	add-highlighter shared/deck/other/ regex "\b(\d+|true|false|&[\w_]+|@[\w_]+)\b" 0:value
+	add-highlighter shared/deck/other/ regex "\d+|true|false|&[\w_]+|@[\w_]+" 0:value
 
 	# builtins
-	add-highlighter shared/deck/other/ regex "\b(and|or|xor|not|neg|abs|min|max|clear|here|if|drop|pop|swap|dup|over|nip|rotl|rotr)\b" 0:keyword
-	add-highlighter shared/deck/other/ regex "\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\." 0:operator
+	add-highlighter shared/deck/other/ regex "\b(get|set|and|or|xor|not|neg|abs|min|max|clear|here|if|drop|pop|swap|dup|over|nip|rotl|rotr)\b" 0:keyword
+	add-highlighter shared/deck/other/ regex "\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|>\||\|>" 0:operator
 }
 
 hook global BufCreate .*\.(dk|deck) %{ set-option buffer filetype deck }

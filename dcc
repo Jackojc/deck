@@ -49,7 +49,13 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^true$/___true/g' \
 -e 's/^false$/___false/g' \
 \
--e 's/^at$/___at/g' \
+-e 's/^\|>$/___deque_pop/g' \
+-e 's/^>\|$/___deque_push/g' \
+\
+-e 's/^set$/___set/g' \
+-e 's/^get$/___get/g' \
+-e 's/^mget$/___mget/g' \
+-e 's/^mset$/___mset/g' \
 -e 's/^drop$/___pop/g' \
 -e 's/^pop$/___pop/g' \
 -e 's/^swap$/___swap/g' \
@@ -61,7 +67,7 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 \
 -e 's/^([[:alpha:]][[:graph:]]*)$/___push \1/g' \
 -e 's/^&([[:alpha:]][[:graph:]]*)$/___call \1/g' \
--e 's/^@([[:alpha:]][[:graph:]]*)$/\1:\n___res_func/g' \
+-e 's/^@([[:alpha:]][[:graph:]]*)$/\1:/g' \
 -e 's/^([[:digit:]]+)$/___push \1/g'
 
 echo "___res_footer"

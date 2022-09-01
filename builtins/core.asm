@@ -4,8 +4,9 @@
 	global _start
 	section .text
 	_start:
-	mov rbp, rsp
 	mov rax, 0
+	lea rsp, [rsp - 100 * 8] ; Allocate 100 elements for the deque.
+	mov rbp, rsp
 %endmacro
 
 %macro ___res_footer 0
@@ -32,10 +33,29 @@
 
 
 ; CONTROL FLOW
+; %macro ___mark 0 ; ( -> x )
+; ; Store the current base pointer value to the stack
+; ; and then set the base pointer to the current stack
+; ; pointer.
+; 	push rbp
+; 	mov rax, rbp
+; 	mov rbp, rsp
+; %endmacro
+
+; %macro ___unmark 0 ; ( x -> y )
+; ; Set the base pointer to the value at the top of the
+; ; stack after storing the current base pointer to the
+; ; stack.
+; ; This is effectively just a swap of the top element
+; ; and the base pointer.
+; 	xchg rax, rbp
+; %endmacro
+
 %macro ___here 0 ; ( -> x )
 ; Pushes the current instruction pointer to the stack.
+	%%here:
 	push rax
-	lea rax, [rel + $+0]
+	mov rax, %%here
 %endmacro
 
 %macro ___go 0 ; ( x -> )
