@@ -8,6 +8,14 @@
 	mov rax, %1
 %endmacro
 
+%macro ___first_push 1 ; ( x -> y )
+; Special form of push that is only used once at the first
+; instance of push. The reason we need this is because without it,
+; the normal push macro pushes the default `0` value in `rax` to the
+; stack.
+	mov rax, %1
+%endmacro
+
 %macro ___pop 0 ; ( x -> )
 ; Pop the top element of the stack.
 ; Popping to `rax` implicitly overwrites the top element.

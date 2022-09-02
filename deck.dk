@@ -1,12 +1,10 @@
 1 2 3
->| >| >|
-; |> |> |>
+
+|> swap rotr
+
 &io_intln
 &io_intln
 &io_intln
-; &io_intln
-; &io_intln
-; &io_intln
 
 ; 5 &iota
 

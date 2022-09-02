@@ -68,6 +68,8 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^([[:alpha:]][[:graph:]]*)$/___push \1/g' \
 -e 's/^&([[:alpha:]][[:graph:]]*)$/___call \1/g' \
 -e 's/^@([[:alpha:]][[:graph:]]*)$/\1:/g' \
--e 's/^([[:digit:]]+)$/___push \1/g'
+-e 's/^([[:digit:]]+)$/___push \1/g' | \
+\
+sed '0,/___push/{s/___push/___first_push/}'
 
 echo "___res_footer"

@@ -4,7 +4,6 @@
 	global _start
 	section .text
 	_start:
-	mov rax, 0
 	lea rsp, [rsp - 100 * 8] ; Allocate 100 elements for the deque.
 	mov rbp, rsp
 %endmacro
