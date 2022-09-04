@@ -1,0 +1,11 @@
+identifier ::= ? XID_Start XID_Continue* ?
+number ::= ? \d+ ?
+
+instruction ::=
+	<identifier> |
+	'+' | '-' | '*' | '/' | '%'
+
+function ::= 'fn' <identifier> <instruction>*
+label ::= '@' <identifier>
+
+program ::= ( <function> | <instruction> | <label> )*
