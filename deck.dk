@@ -1,56 +1,89 @@
-1 2 3
+; `... :: foo` syntax for functions
+; implement map function
+; remove special function label that pushes pops address, just do it manually
 
-|> swap rotr
+; cake ( b a -> b a a b )
+; flip ( a b c -> c b a )
 
-&io_intln
-&io_intln
-&io_intln
+; apply-at function to get/set an element in the stack and apply a function
+; to it.
 
-; 5 &iota
+; 1 2 3 inc map
 
-; &io_intln
-; &io_intln
-; &io_intln
-; &io_intln
-; &io_intln
+; 1 1 1
+; &inc 1 apply
+; dbg
 
-; &io_intln
-; &io_intln
-; &io_intln
-; &io_intln
-; &io_intln
+; 69 >| 420 dqreplace dbg
 
-; implement routine to print the entire stack
-; like: `[ a b c ]`
+1 2 3 6 >|
+dqxchg
+dbg
 
-0 sys_exit
+sys_ok
 
-@iota
-	>| 0 swap >|
-	@iota_start__
-		dup |> dup >| >= iota_end__ if
-		dup ++ iota_start__ .
-	@iota_end__
-	|> pop pop |> .
+; pairs
+@pdup >| over over dqgo
+@ppop >| pop pop dqgo
+@pnip >| nip nip dqgo
+@pover >| 3 get 3 get dqgo
+@pswap >| pover >| >| >| >| ppop |> |> |> |> dqgo
+@ptuck >| pswap pover dqgo
+
+; deque
+@dqdup |> dup >| swap . ; dup element on deque
+@dqpop |> pop . ; pop element on deque
+@dqswap |> |> swap >| >| .
+@dqgo pop |> .
+@dqcall |> .
+@dqxchg swap |> rotr >| . ; ( x cont | y -> y cont | x )
+
+; functions
+@map @.loop
+
+@.end .
+
+@apply ; ( fn i cont -> )
+	>| swap >|
+	dup get
+	; |> &.
+	dqcall
+	swap set
+dqgo
+
+@reduce >| >| @.loop # 1 >= &.end if &.loop dqdup . @.end dqpop dqgo
+
+@add >| + dqgo
+@sub >| - dqgo
+@mul >| * dqgo
+@div >| / dqgo
+
+@inc >| ++ dqgo
+@dec >| -- dqgo
+
+@sum >| &add reduce dqgo
+@prod >| &mul reduce dqgo
+
+@fact >| 1 swap iota prod dqgo
+@pow2 >| dup * dqgo
+
+@dbg >| @.loop # 0 = &.end if int &.loop . @.end dqgo
+
+@iota >| >| @.loop
+	dup ++ dup ++
+	dqdup >= &.loop if
+@.end dqpop dqgo
+
+; aliases
+@int &io_intln .
+@hex &io_hexln .
+
+; wrappers
+@intk >| dup |> &io_intln . ; print int keep element
+@hexk >| dup |> &io_hexln . ; print hex keep element
 
 
-; @iota 0 @iota__
-; 	1 get dup 0 >= iota_end__ if - dup
-; 	&iota__
-; @iota_end__ .
 
-; 5 5 5
-; 10 0 set
-; &io_intln
-; &io_intln
-; &io_intln
-
-; 1 2 3 # &io_intln
-
-; 111 &io_intln
-
-
-; 1 2 3 rotr drop drop io_hexln
 
 ; here
 ; 	0 swap 0 # io_hexln swap .
@@ -60,10 +93,5 @@
 ; 	dup 10 <=
 ; 	2 get f ? .
 ; @f
-
-; 255 &io_hexln ; FF
-; 65535 &io_hexln ; FFFF
-; 16777215 &io_hexln ; FFFFFF
-; 4294967295 &io_hexln ; FFFFFFFF
 
 ; 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .

@@ -1,12 +1,16 @@
 #!/usr/bin/env sh
 
+identifier='([[:alpha:]]|\.)[[:graph:]]+'
+number='[[:digit:]]+'
+
 echo "%include \"builtins/core.asm\""
 echo "%include \"builtins/stack.asm\""
 echo "%include \"builtins/arith.asm\""
 echo "%include \"builtins/util.asm\""
 echo "%include \"stdlib/util.asm\""
 echo "%include \"stdlib/io.asm\""
-echo "___res_header"
+
+echo "___header"
 
 cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^\+$/___add/g' \
@@ -35,6 +39,9 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^>$/___gt/g' \
 -e 's/^>=$/___gte/g' \
 \
+-e 's/^\[$/___mark/g' \
+-e 's/^\]$/___unmark/g' \
+\
 -e 's/^neg$/___neg/g' \
 -e 's/^abs$/___abs/g' \
 -e 's/^min$/___min/g' \
@@ -42,9 +49,11 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^clear$/___clear/g' \
 -e 's/^here$/___here/g' \
 -e 's/^if$/___if/g' \
+-e 's/^br$/___branch/g' \
 -e 's/^#$/___count/g' \
 -e 's/^\?$/___choose/g' \
 -e 's/^\.$/___go/g' \
+-e 's/^\&.$/___call_go/g' \
 \
 -e 's/^true$/___true/g' \
 -e 's/^false$/___false/g' \
@@ -62,14 +71,12 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^dup$/___dup/g' \
 -e 's/^over$/___over/g' \
 -e 's/^nip$/___nip/g' \
+-e 's/^tuck$/___tuck/g' \
 -e 's/^rotl$/___rotl/g' \
 -e 's/^rotr$/___rotr/g' \
 \
--e 's/^([[:alpha:]][[:graph:]]*)$/___push \1/g' \
--e 's/^&([[:alpha:]][[:graph:]]*)$/___call \1/g' \
--e 's/^@([[:alpha:]][[:graph:]]*)$/\1:/g' \
--e 's/^([[:digit:]]+)$/___push \1/g' | \
-\
-sed '0,/___push/{s/___push/___first_push/}'
+-e "s/^($number)$/___push \1/g" \
+-e "s/^&($identifier)$/___push \1/g" \
+-e "s/^($identifier)$/___call \1/g" \
+-e "s/^@($identifier)$/\1:/g"
 
-echo "___res_footer"

@@ -10,19 +10,21 @@ provide-module -override deck %{
 	# values/operators
 	evaluate-commands %sh{
 		values='true|false|\d+'
-		operators='\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|>\||\|>'
+		operators='\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|&\.|>\||\|>'
+		addr='&[\w\.][\w\d_]+'
+		label='@[\w\.][\w\d_]+'
+		call='[\w\.][\w\d_]+'
+		builtins='get|set|and|or|xor|not|neg|abs|min|max|clear|here|if|drop|pop|swap|dup|over|nip|tuck|rotl|rotr'
 
 		printf %s "
 			add-highlighter shared/deck/other/ regex (\s|^)\K("${values}")(\s|$)(("${values}")(\s|$))* 0:value
 			add-highlighter shared/deck/other/ regex (\s|^)\K("${operators}")(\s|$)(("${operators}")(\s|$))* 0:operator
+			add-highlighter shared/deck/other/ regex (\s|^)\K("${addr}")(\s|$)(("${addr}")(\s|$))* 0:value
+			add-highlighter shared/deck/other/ regex (\s|^)\K("${label}")(\s|$)(("${label}")(\s|$))* 0:meta
+			add-highlighter shared/deck/other/ regex (\s|^)\K("${call}")(\s|$)(("${call}")(\s|$))* 0:identifier
+			add-highlighter shared/deck/other/ regex (\s|^)\K("${builtins}")(\s|$)(("${builtins}")(\s|$))* 0:builtin
 		"
 	}
-
-	# label/function
-	add-highlighter shared/deck/other/ regex "(&|@|:)[\w\.][\w\d_]+" 0:value
-
-	# keywords
-	add-highlighter shared/deck/other/ regex "\b(get|set|and|or|xor|not|neg|abs|min|max|clear|here|if|drop|pop|swap|dup|over|nip|rotl|rotr)\b" 0:keyword
 }
 
 hook global BufCreate .*\.(dk|deck) %{ set-option buffer filetype deck }

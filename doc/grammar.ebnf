@@ -1,11 +1,14 @@
-identifier ::= ? XID_Start XID_Continue* ?
-number ::= ? \d+ ?
+comment ::= ? ;.*$ ?
+identifier ::= ? {XID_Start}{XID_Continue}* ?
+number ::= ? [0-9]+ ? | ? 0x[0-9A-Fa-f]+ ?
+
+call ::= '&' <identifier>
+workspace ::= '[' <instruction>* ']'
+label ::= '@' <identifier>
 
 instruction ::=
-	<identifier> |
+	<workspace> | <label> | <identifier> | <call> |
 	'+' | '-' | '*' | '/' | '%'
 
 function ::= 'fn' <identifier> <instruction>*
-label ::= '@' <identifier>
-
-program ::= ( <function> | <instruction> | <label> )*
+program ::= ( <function> | <instruction> )*

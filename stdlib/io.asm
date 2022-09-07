@@ -56,14 +56,14 @@ io_hexln: ; ( x cont -> )
 ; We can then add this value on top of adding `0x3a` to bring
 ; everything into the appropriate ASCII ranges and that gives
 ; us our character.
-	mov r10, rax
+	pop r10
 	pop rax
 	mov r8, rsp   ; Save stack position.
 
 	dec rsp  ; \n
 	mov byte [rsp], 10
 
-	___io_hexln_take:
+	.take:
 	mov rbx, rax ; n = (c & 0x0f) - 10
 	and rbx, 0h0f
 	sub rbx, 10
@@ -81,7 +81,7 @@ io_hexln: ; ( x cont -> )
 
 	shr rax, 4
 	cmp rax, 0
-	jnz ___io_hexln_take
+	jnz .take
 
 	mov rax, 1   ; write
 	mov rdi, 1   ; stdout
@@ -91,8 +91,6 @@ io_hexln: ; ( x cont -> )
 	syscall
 
 	mov rsp, r8
-	pop rax
-
 	jmp r10
 
 
@@ -105,15 +103,15 @@ io_intln: ; ( x cont -> )
 ; division and remainder together. We can simply add ASCII
 ; '0' to the remainder to get the digit to print and the
 ; number is divided by ten to move to the next digit.
-	mov r10, rax
-	pop rax
+	pop r10 ; cont
+	pop rax ; x
 	mov r8, rsp   ; Save stack position.
 	mov rbx, 10
 
 	dec rsp  ; \n
 	mov byte [rsp], 10
 
-	___io_intln_take:
+	.take:
 	cqo
 	idiv rbx
 	add rdx, 0h30
@@ -122,7 +120,7 @@ io_intln: ; ( x cont -> )
 	mov [rsp], dl
 
 	cmp rax, 0
-	jnz ___io_intln_take
+	jnz .take
 
 	mov rax, 1   ; write
 	mov rdi, 1   ; stdout
@@ -132,8 +130,6 @@ io_intln: ; ( x cont -> )
 	syscall
 
 	mov rsp, r8
-	pop rax
-
 	jmp r10
 
 
