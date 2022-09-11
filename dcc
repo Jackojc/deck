@@ -53,7 +53,7 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^#$/___count/g' \
 -e 's/^\?$/___choose/g' \
 -e 's/^\.$/___go/g' \
--e 's/^\&.$/___call_go/g' \
+-e 's/^call$/___call_go/g' \
 \
 -e 's/^true$/___true/g' \
 -e 's/^false$/___false/g' \
@@ -65,7 +65,6 @@ cat | sed 's/;.*//g' | tr -s '[:space:]' '\n' | sed -E \
 -e 's/^get$/___get/g' \
 -e 's/^mget$/___mget/g' \
 -e 's/^mset$/___mset/g' \
--e 's/^drop$/___pop/g' \
 -e 's/^pop$/___pop/g' \
 -e 's/^swap$/___swap/g' \
 -e 's/^dup$/___dup/g' \

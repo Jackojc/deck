@@ -10,11 +10,11 @@ provide-module -override deck %{
 	# values/operators
 	evaluate-commands %sh{
 		values='true|false|\d+'
-		operators='\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|&\.|>\||\|>'
+		operators='\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|&\.|>\||\|>|\[|\]'
 		addr='&[\w\.][\w\d_]+'
 		label='@[\w\.][\w\d_]+'
 		call='[\w\.][\w\d_]+'
-		builtins='get|set|and|or|xor|not|neg|abs|min|max|clear|here|if|drop|pop|swap|dup|over|nip|tuck|rotl|rotr'
+		builtins='get|set|mget|mset|and|or|xor|not|neg|abs|min|max|clear|here|if|br|pop|swap|dup|over|nip|tuck|rotl|rotr|call'
 
 		printf %s "
 			add-highlighter shared/deck/other/ regex (\s|^)\K("${values}")(\s|$)(("${values}")(\s|$))* 0:value

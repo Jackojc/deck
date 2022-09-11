@@ -2,13 +2,13 @@ comment ::= ? ;.*$ ?
 identifier ::= ? {XID_Start}{XID_Continue}* ?
 number ::= ? [0-9]+ ? | ? 0x[0-9A-Fa-f]+ ?
 
-call ::= '&' <identifier>
+addr ::= '&' <identifier>
 workspace ::= '[' <instruction>* ']'
 label ::= '@' <identifier>
 
 instruction ::=
-	<workspace> | <label> | <identifier> | <call> |
+	<workspace> | <label> | <identifier> | <addr> |
 	'+' | '-' | '*' | '/' | '%'
 
-function ::= 'fn' <identifier> <instruction>*
+function ::= <instruction>* '::' <identifier>
 program ::= ( <function> | <instruction> )*
