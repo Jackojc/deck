@@ -4,16 +4,16 @@ provide-module -override deck %{
 	add-highlighter shared/deck/other default-region group
 
 	# comment
-	add-highlighter shared/deck/comment region ';' '$' group
+	add-highlighter shared/deck/comment region '#!' '$' group
 	add-highlighter shared/deck/comment/ fill comment
 
 	# values/operators
 	evaluate-commands %sh{
 		values='true|false|\d+'
 		operators='\+|-|\*|/|<<|>>|\+\+|--|&|\||\^|~|=|!=|<|<=|>|>=|#|\?|\.|&\.|>\||\|>|\[|\]'
-		addr='&[\w\.][\w\d_]+'
-		label='@[\w\.][\w\d_]+'
-		call='[\w\.][\w\d_]+'
+		addr='&[\w\.][\w\d_]*'
+		label='@[\w\.][\w\d_]*'
+		call='[\w\.][\w\d_]*'
 		builtins='get|set|mget|mset|and|or|xor|not|neg|abs|min|max|clear|here|if|br|pop|swap|dup|over|nip|tuck|rotl|rotr|call'
 
 		printf %s "
@@ -36,8 +36,8 @@ hook -group deck-highlight global WinSetOption filetype=deck %{
 }
 
 hook global BufSetOption filetype=deck %{
-	set-option buffer comment_line ';'
-	set-option buffer comment_block_begin ';'
+	set-option buffer comment_line '#!'
+	set-option buffer comment_block_begin '#!'
 	set-option buffer comment_block_end ''
 }
 

@@ -1,6 +1,30 @@
+; UTILITIES
+d_7379735f65786974:
+sys_exit: ; ( x -> )
+; Exit syscall.
+; We overwrite the top of stack here but we're exiting so who cares.
+	mov rax, 60
+	pop rdi
+	syscall
+
+d_7379735f657272:
+sys_err: ; ( -> )
+; Exit with a `1` status to signify that something went wrong.
+	mov rax, 60
+	mov rdi, 1
+	syscall
+
+d_7379735f6f6b:
+sys_ok: ; ( -> )
+; Exit with `0` status to signify that the program
+; performed correctly.
+	mov rax, 60
+	xor rdi, rdi
+	syscall
+
+
 ; INPUT/OUTPUT
-
-
+d_696f5f72656164:
 io_read: ; ( cont -> x )
 ; Reads as many characters as will with into a single word.
 ; On x86-64, this is eight characters.
@@ -22,6 +46,7 @@ io_read: ; ( cont -> x )
 	pop rax
 	jmp rbx
 
+d_696f5f7772697465:
 io_write: ; ( x cont -> )
 ; Write the element on the top of the stack to stdout.
 ; We write a quad word worth of data which on x86-64 means
@@ -43,6 +68,7 @@ io_write: ; ( x cont -> )
 
 	jmp rbx
 
+d_696f5f6865786c6e:
 io_hexln: ; ( x cont -> )
 ; Writes a quad word to stdout in hex format without
 ; leading zeroes.
@@ -94,6 +120,7 @@ io_hexln: ; ( x cont -> )
 	jmp r10
 
 
+d_696f5f696e746c6e:
 io_intln: ; ( x cont -> )
 ; Writes a quad word to stdout in decimal format without
 ; leading zeroes.
@@ -131,5 +158,6 @@ io_intln: ; ( x cont -> )
 
 	mov rsp, r8
 	jmp r10
+
 
 

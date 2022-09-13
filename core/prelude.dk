@@ -1,0 +1,24 @@
+@br pop ? .
+@if ? .
+
+@dgo pop |> .
+@ret &dgo .
+@. pop go
+@call .
+
+@++ >| 1 swp + ret
+@-- >| 1 swp - ret
+
+@true 1 swp .
+@false 0 swp .
+
+
+@rotl >| rotr rotr ret #! ( a b c -> b c a )
+
+@over >| >| dup |> swp ret #! ( a b -> a b a )
+@nip >| >| pop |> ret #! ( a b -> b )
+@tuck >| dup rotr ret #! ( a b -> b a b )
+
+@min >| pdup > rotr ? ret #! ( a b cont -> q )
+@max >| pdup < rotr ? ret #! ( a b cont -> q )
+

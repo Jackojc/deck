@@ -5,7 +5,7 @@ include config.mk
 
 all: deck
 
-deck.o: deck.dk stdlib/* builtins/* config.mk Makefile dcc
+deck.o: deck.dk config.mk Makefile
 	./dcc < $< > deck.asm
 	$(ASM) $(DECK_FLAGS) deck.asm -o deck.o
 
@@ -16,11 +16,11 @@ dis:
 	objdump --insn-width=15 --visualize-jumps=color -w -M intel -d deck
 
 clean:
-	rm -rf deck deck.o deck-$(VERSION).tar.gz deck.asm
+	rm -rf deck deck.o deck.asm deck.lst deck-$(VERSION).tar.gz
 
 dist: clean deck
 	mkdir -p deck-$(VERSION)
-	cp -R LICENSE Makefile README.md config.mk deck.asm deck.1 \
+	cp -R LICENSE Makefile README.md config.mk deck.dk deck.1 \
 		deck-$(VERSION)
 	tar -cf - deck-$(VERSION) | gzip > deck-$(VERSION).tar.gz
 	rm -rf deck-$(VERSION)
