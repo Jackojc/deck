@@ -90,13 +90,6 @@ ___swp: ; ( a b cont -> b a )
 	push rbx ; a
 	jmp r10
 
-d_647570: ; dup
-___dup: ; ( x cont -> x x )
-; Duplicate the top element of the stack.
-	pop r10
-	push qword [rsp]
-	jmp r10
-
 d_726f7472: ; rotr
 ___rotr: ; ( a b c cont -> c a b )
 ; Rotate the top three stack elements to the right.
@@ -206,8 +199,10 @@ ___mod: ; ( a b cont -> q )
 d_3c3c: ; <<
 ___lsh: ; ( a b cont -> q )
 	pop r10
+	pop rax
 	pop rcx
 	sal rax, cl
+	push rax
 	jmp r10
 
 d_3e3e: ; >>

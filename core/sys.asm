@@ -34,8 +34,8 @@ io_read: ; ( cont -> x )
 ; value to `rax` so it's at the top of the stack. We jump
 ; to the previously saved return address to continue
 ; execution.
-	mov rbx, rax
-	add rsp, 8
+	pop r10
+	sub rsp, 8
 
 	mov rax, 0   ; read
 	mov rdi, 0   ; stdin
@@ -43,8 +43,7 @@ io_read: ; ( cont -> x )
 	mov rdx, 8   ; count
 	syscall
 
-	pop rax
-	jmp rbx
+	jmp r10
 
 d_696f5f7772697465:
 io_write: ; ( x cont -> )
@@ -55,7 +54,7 @@ io_write: ; ( x cont -> )
 ; perform the syscall on the stack pointer. We then remove the
 ; top element of the stack and move the next element up to `rax`
 ; before jumping to the return address.
-	mov rbx, rax
+	pop r10
 
 	mov rax, 1   ; write
 	mov rdi, 1   ; stdout
@@ -63,10 +62,8 @@ io_write: ; ( x cont -> )
 	mov rdx, 8   ; count
 	syscall
 
-	sub rsp, 8
-	pop rax
-
-	jmp rbx
+	add rsp, 8
+	jmp r10
 
 d_696f5f6865786c6e:
 io_hexln: ; ( x cont -> )

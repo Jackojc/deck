@@ -23,9 +23,6 @@
 %macro ___call 1 ; ( -> )
 ; Pushes the address following this instruction to the stack
 ; before jumping to the given argument.
-	; ___push %%after
-	; jmp %1
-	; %%after:
 	call %1
 %endmacro
 
@@ -38,6 +35,6 @@
 %macro ___here 0 ; ( -> ip )
 ; Pushes the current instruction pointer to the stack.
 	%%here:
-	___push %%here
+	push %%here
 %endmacro
 

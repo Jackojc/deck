@@ -1,24 +1,100 @@
-@br pop ? .
-@if ? .
+#! ABOUT
+#!
+#!   xxxp -> pair
+#!   xxxd -> deque
+#!   xxxv -> variadic
+#!   xxxk -> keep
+#!   xxx2 -> twice
+#!
 
-@dgo pop |> .
-@ret &dgo .
-@. pop go
-@call .
+#! CONSTANTS
+@true 1 swp .  #! ( cont -> t )
+@false 0 swp . #! ( cont -> f )
 
-@++ >| 1 swp + ret
-@-- >| 1 swp - ret
+#! BRANCHING
+@br pop ? . #! ( cond t f cont -> )
+@if ? . #! ( cond addr cont -> )
+@ifz rotl zero? rotr br #! ( x addr cont -> )
 
-@true 1 swp .
-@false 0 swp .
+#! CORE
+@ret &dgo . #! ( | addr -> )
+@. pop go #! ( addr -> )
+@call swp . #! ( addr cont -> )
 
-
-@rotl >| rotr rotr ret #! ( a b c -> b c a )
-
-@over >| >| dup |> swp ret #! ( a b -> a b a )
-@nip >| >| pop |> ret #! ( a b -> b )
-@tuck >| dup rotr ret #! ( a b -> b a b )
-
+#! ARITHMETIC / COMPARISONS
+@zero? >| 0 = ret #! ( a cont -> b )
+@++ >| 1 swp + ret #! ( a cont -> b )
+@-- >| 1 swp - ret #! ( a cont -> b )
 @min >| pdup > rotr ? ret #! ( a b cont -> q )
 @max >| pdup < rotr ? ret #! ( a b cont -> q )
+
+#! STACK
+@dup >| 0 get ret #! ( x cont -> x x )
+@cake >| pdup swp ret #! ( a b cont -> a b b a )
+@flip >| rotr swp ret #! ( a b c cont -> c b a )
+@rotl >| rotr rotr ret #! ( a b c cont -> b c a )
+@over >| >| dup |> swp ret #! ( a b cont -> a b a )
+@nip >| >| pop |> ret #! ( a b cont -> b )
+@tuck >| dup rotr ret #! ( a b cont -> b a b )
+
+#! TWICE
+@pop2 >| pop pop ret
+@dup2 >| dup dup ret
+@tuck2 >| tuck tuck ret
+@over2 >| over over ret
+@nip2 >| nip nip ret
+@cake2 >| cake cake ret
+
+#! PAIRS
+@pdup >| over over ret #! ( a b cont -> a b a b )
+@ppop >| pop pop ret #! ( a b cont -> )
+@pnip >| pswp pop2 ret #! ( a b c d cont -> c d )
+@pover >| 3 get 3 get ret #! ( a b c d cont -> a b c d a b )
+@pswp >| >| rotr |> rotr ret #! ( a b c d cont -> c d a b )
+@ptuck >| pswp pover ret #! ( a b c d cont -> c d a b c d )
+
+#! DEQUE
+@dgo pop |> . #! ( cont | addr -> )
+@dcpy |> dup >| swp . #! ( cont | x -> x | x )
+@dswp |> |> swp >| >| . #! ( cont | x y -> | y x )
+@dcall |> . #! ( cont | addr -> cont )
+@dxchg swp |> rotr >| . #! ( x cont | y -> y | x )
+@dpop |> pop . #! ( cont | x -> | )
+@ddo |> rotl call >| . #! ( fn cont | x -> | y )
+
+#! PAIRS & DEQUE
+@pdcpy |> |> pdup >| >| rotl . #! ( cont | x y -> x y | x y )
+
+#! UTILITIES
+@dbg >| @.loop # 0 = &.end if io_intln &.loop . @.end ret #! ( ... cont -> )
+
+@map #! ( ... fn cont -> ... )
+	>| >| # >|
+@.loop
+	dcpy
+	0 = &.end if
+	pdcpy
+	swp -- apply
+	&-- ddo
+	&.loop .
+@.end dpop dpop ret
+
+@apply #! ( ... fn i cont -> ... )
+	>| tuck >| >|
+	get dcall |> set
+ret
+
+@reduce #! ( ... fn cont -> x )
+	>| >|
+@.loop
+	# 1 >= &.end if
+	&.loop dcpy .
+@.end dpop ret
+
+#! @iota #! ( a b cont -> ... )
+#! 	>| >|
+#! @.loop
+#! 	dup ++ dup ++
+#! 	dcpy >= &.loop if
+#! @.end dpop ret
 

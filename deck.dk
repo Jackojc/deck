@@ -1,137 +1,83 @@
-; 1 2 cake dbg
-; 1 2 3 flip dbg
+#! `... :: foo` syntax for functions
 
-; 1 2 >| >| pdcpy dbg
+#! remove special function label that pushes pops address, just do it manually
 
-; 1 4 iota pswap dbg
-; 1 >| &inc ddo &inc ddo |> dbg
-; 121 122 123
-; &inc 2 apply dbg
+#! implement some kind of loop function which checks the top of stack value
+#! before jumping to address
+#! @loop pushes here to deque @until jumps back to value on deque while tos is 0
 
-; 1 2 3
-; 1 5 iota vadd
+#! 5 fact int sys_ok
 
-; @fact >| 1 swap iota vmul ret
-; @iota >| >| @.loop
-; 	dup ++ dup ++
-; 	ddup >= &.loop if
-; @.end dpop ret
+42 [ [ 4 5 6 v* ] 1 2 3 v+ ] dbg sys_ok
 
+@v+ &+ swp &reduce .
+@v* &* swp &reduce .
 
-; &inc map
-; &dec map
-; 5 fac int
-
-1 2 kint dbg
-
-sys_ok
+#! @fact >| 1 swp iota v* ret
+#! @iota >| &.dup++ swp -- times ret
+#! @.dup++ >| dup ++ ret
 
 
-; stack
-@cake >| pdup swap ret ; ( a b cont -> a b b a )
-@flip >| rotr swap ret ; ( a b c cont -> c b a )
-; @qrotl >| >| rotl |> swap dgo ; ( a b c d -> b c d a )
-; @qrotr >| >| rotl |> swap dgo ; ( a b c d ->  )
-; instead of the above, implement versions of rot that operate
-; on the _entire stack_
-; @vrotl
-; @vrotl >|
-	; retrieve the leftmost element and store it on the deq.
-	; next we loop and set every left element equal to its right element's value.
-	; lastly we pop the value we stored earlier from the deque.
-; ret
+#! @times
+#! 	>| swp >| >|
+#! @.loop
+#! 	dcpy &.end ifz
+#! 	|> -- >|
+#! 	dswp dcpy dswp call
+#! 	&.loop .
+#! @.end dpop dpop ret
 
 
-; pairs
-@pdup >| over over ret ; ( a b cont -> a b a b )
-@ppop >| pop pop ret ; ( a b cont -> )
-@pnip >| nip nip ret ; ( a b c cont -> c )
-@pover >| 3 get 3 get ret ; ( a b c d -> a b c d a b )
-@pswap >| >| rotr |> rotr ret ; ( a b c d -> c d a b )
+#! 1 2 3
+#! 1 5 iota vadd dbg
 
-@ptuck >| pswap pover ret
+#! #! &++ map
+#! #! &-- map
+#! #! 5 fac int
 
-; deque
-; @dpsh swap >| . ; ( cont | x -> | x)
-@dcpy |> dup >| swap . ; ( cont | x -> x | x )
-@dswap |> |> swap >| >| .
-@dgo pop |> .
-@dcall |> .
-@dxchg swap |> rotr >| . ; ( x cont | y -> y | x )
-@dpop |> pop . ; ( cont | x -> | )
-@ddo |> rotl call >| . ; ( fn cont | x -> | y )
 
-; pairs deque
-@pdcpy |> |> pdup >| >| rotl . ; ( | x y -> x y | x y )
+#! #! stack
+#! #! @qrotl >| >| rotl |> swp dgo #! ( a b c d -> b c d a )
+#! #! @qrotr >| >| rotl |> swp dgo #! ( a b c d ->  )
+#! #! instead of the above, implement versions of rot that operate
+#! #! on the _entire stack_
+#! #! @vrotl
+#! #! @vrotl >|
+#! 	#! retrieve the leftmost element and store it on the deq.
+#! 	#! next we loop and set every left element equal to its right element's value.
+#! 	#! lastly we pop the value we stored earlier from the deque.
+#! #! ret
 
-; functions
-@map ; ( ... fn cont -> ... )
-	>| >| # >|
-@.loop
-	dcpy
-	0 = &.end if
-	pdcpy
-	swap -- apply
-	&dec ddo
-	&.loop .
-@.end dpop dpop ret
 
-@apply ; ( ... fn i cont -> )
-	>| tuck >| >|
-	get dcall |> set
-ret
+#! @vadd &+ swp &reduce .
+#! @vsub &- swp &reduce .
+#! @vmul &* swp &reduce .
+#! @vdiv &/ swp &reduce .
 
-@reduce
-	>| >|
-@.loop
-	# 1 >= &.end if
-	&.loop dcpy .
-@.end dpop ret
+#! @fact >| 1 swp iota vmul ret
+#! @fact2 >| dup 1 = &.end if dup -- fact2 * @.end ret
 
-@add >| + ret
-@sub >| - ret
-@mul >| * ret
-@div >| / ret
+#! @sqr >| dup * ret
 
-@inc >| ++ ret
-@dec >| -- ret
+#! @kdbg >| &kint map ret
 
-@vadd &add swap &reduce .
-@vsub &sub swap &reduce .
-@vmul &mul swap &reduce .
-@vdiv &div swap &reduce .
-
-@fact >| 1 swap iota vmul ret
-@fact2 >| dup 1 = &.end if dup -- fact2 * @.end ret
-@sqr >| dup * ret
-
-@dbg >| @.loop # 0 = &.end if int &.loop . @.end ret
-@kdbg >| &kint map ret
-
-@iota >| >| @.loop
-	dup ++ dup ++
-	dcpy >= &.loop if
-@.end dpop ret
-
-; aliases
+#! #! aliases
 @int &io_intln .
 @hex &io_hexln .
 
-; wrappers
-@kint over rotr &io_intln . ; ( x cont -> x )
-@khex over rotr &io_hexln . ; ( x cont -> x )
-
-@ret &dgo .
-
+#! #! wrappers
+#! #! ( a b -> a a b )
+@kint over rotr &io_intln . #! ( x cont -> x )
+@khex over rotr &io_hexln . #! ( x cont -> x )
 
 
-; here
-; 	0 swap 0 # io_hexln swap .
+#! #! here
+#! #! 	0 swp 0 # io_hexln swp .
 
-; 0 here swap
-; 	dup &io_intln ++
-; 	dup 10 <=
-; 	2 get f ? .
-; @f
+#! #! 0 here swp
+#! #! 	dup &io_intln ++
+#! #! 	dup 10 <=
+#! #! 	2 get f ? .
+#! #! @f
 
-; 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .
+#! #! 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .
