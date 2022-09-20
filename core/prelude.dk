@@ -5,6 +5,8 @@
 #!   xxxv -> variadic
 #!   xxxk -> keep
 #!   xxx2 -> twice
+#!   xxxn -> times
+#!   xxx? -> conditional
 #!
 
 #! CONSTANTS
@@ -17,84 +19,146 @@
 @ifz rotl zero? rotr br #! ( x addr cont -> )
 
 #! CORE
-@ret &dgo . #! ( | addr -> )
+@ret &god . #! ( | addr -> )
 @. pop go #! ( addr -> )
 @call swp . #! ( addr cont -> )
+@# >| count ret #! ( ... cont -> n )
+@cell byte word / swp . #! ( cont -> n )
+@ptr++ >| cell + ret
+@ptr-- >| cell swp - ret
 
 #! ARITHMETIC / COMPARISONS
 @zero? >| 0 = ret #! ( a cont -> b )
 @++ >| 1 swp + ret #! ( a cont -> b )
 @-- >| 1 swp - ret #! ( a cont -> b )
-@min >| pdup > rotr ? ret #! ( a b cont -> q )
-@max >| pdup < rotr ? ret #! ( a b cont -> q )
+@min >| dupp > rotr ? ret #! ( a b cont -> q )
+@max >| dupp < rotr ? ret #! ( a b cont -> q )
+@dup++ >| dup ++ ret #! ( x cont -> a b )
+@dup-- >| dup -- ret #! ( x cont -> a b )
+
+#! KEEP
+@io_intlnk >| dup io_intln ret #! ( x cont -> x )
+@io_hexlnk >| dup io_hexln ret #! ( x cont -> x )
 
 #! STACK
 @dup >| 0 get ret #! ( x cont -> x x )
-@cake >| pdup swp ret #! ( a b cont -> a b b a )
+@swp >| 1 get >| 0 set |> ret #! ( a b cont -> b a )
+@cake >| dupp swp ret #! ( a b cont -> a b b a )
 @flip >| rotr swp ret #! ( a b c cont -> c b a )
+@rotr >| swp >| swp |> ret #! ( a b c cont -> c a b )
 @rotl >| rotr rotr ret #! ( a b c cont -> b c a )
-@over >| >| dup |> swp ret #! ( a b cont -> a b a )
-@nip >| >| pop |> ret #! ( a b cont -> b )
+@over >| 1 get ret #! ( a b cont -> a b a )
+@undr >| over swp ret #! ( a b cont -> a a b )
+@nip >| 0 set ret #! ( a b cont -> b )
 @tuck >| dup rotr ret #! ( a b cont -> b a b )
 
 #! TWICE
-@pop2 >| pop pop ret
-@dup2 >| dup dup ret
-@tuck2 >| tuck tuck ret
-@over2 >| over over ret
-@nip2 >| nip nip ret
-@cake2 >| cake cake ret
+@pop2 >| pop pop ret #! ( a b cont -> )
+@dup2 >| dup dup ret #! ( x cont -> x x x )
+@tuck2 >| tuck tuck ret #! ( a b cont -> b b a b )
+@over2 >| over over ret #! ( a b cont -> a b a b )
+@nip2 >| nip nip ret #! ( a b c cont -> c )
+@cake2 >| cake cake ret #! ( a b cont -> a b b a a b )
+@undr2 >| undr undr ret #! ( a b cont -> a a a b )
 
 #! PAIRS
-@pdup >| over over ret #! ( a b cont -> a b a b )
-@ppop >| pop pop ret #! ( a b cont -> )
-@pnip >| pswp pop2 ret #! ( a b c d cont -> c d )
-@pover >| 3 get 3 get ret #! ( a b c d cont -> a b c d a b )
-@pswp >| >| rotr |> rotr ret #! ( a b c d cont -> c d a b )
-@ptuck >| pswp pover ret #! ( a b c d cont -> c d a b c d )
+@dupp >| over over ret #! ( a b cont -> a b a b )
+@popp >| pop pop ret #! ( a b cont -> )
+@nipp >| swpp pop2 ret #! ( a b c d cont -> c d )
+@overp >| 3 get 3 get ret #! ( a b c d cont -> a b c d a b )
+@swpp >| >| rotr |> rotr ret #! ( a b c d cont -> c d a b )
+@tuckp >| swpp overp ret #! ( a b c d cont -> c d a b c d )
 
 #! DEQUE
-@dgo pop |> . #! ( cont | addr -> )
-@dcpy |> dup >| swp . #! ( cont | x -> x | x )
-@dswp |> |> swp >| >| . #! ( cont | x y -> | y x )
-@dcall |> . #! ( cont | addr -> cont )
-@dxchg swp |> rotr >| . #! ( x cont | y -> y | x )
-@dpop |> pop . #! ( cont | x -> | )
-@ddo |> rotl call >| . #! ( fn cont | x -> | y )
+@god pop |> . #! ( cont | addr -> )
+@cpyd |> dup >| swp . #! ( cont | x -> x | x )
+@swpd |> |> swp >| >| . #! ( cont | x y -> | y x )
+@calld |> . #! ( cont | addr -> cont )
+@xchgd swp |> rotr >| . #! ( x cont | y -> y | x )
+@popd |> pop . #! ( cont | x -> | )
+@dod |> rotl call >| . #! ( fn cont | x -> | y )
 
 #! PAIRS & DEQUE
-@pdcpy |> |> pdup >| >| rotl . #! ( cont | x y -> x y | x y )
+@cpypd |> |> dupp >| >| rotl . #! ( cont | x y -> x y | x y )
 
 #! UTILITIES
-@dbg >| @.loop # 0 = &.end if io_intln &.loop . @.end ret #! ( ... cont -> )
+@dbg #! ( ... cont -> )
+#! `dbg` prints all of the elements on the stack
+#! to stdout starting from the top element. This
+#! function consumes all elements on the stack.
+	>|
+@.loop
+	# 0 = &.end if
+	io_intln
+	&.loop .
+@.end ret
 
 @map #! ( ... fn cont -> ... )
+#! `map` applies a function to all elements of the
+#! stack. The function must not modify the stack
+#! size and must only modify the value in place.
 	>| >| # >|
 @.loop
-	dcpy
+	cpyd
 	0 = &.end if
-	pdcpy
+	cpypd
 	swp -- apply
-	&-- ddo
+	&-- dod
 	&.loop .
-@.end dpop dpop ret
+@.end popd popd ret
 
 @apply #! ( ... fn i cont -> ... )
+#! `apply` runs a given function on a specified
+#! index in the stack (offset from the top
+#! element). The function must modify the element
+#! in place and not modify the stack size.
 	>| tuck >| >|
-	get dcall |> set
+	get calld |> set
 ret
 
 @reduce #! ( ... fn cont -> x )
+#! `reduce` executes a function while the size
+#! of the stack is greater than one. This means
+#! the function supplied must reduce the size of
+#! the stack in some way. A common use-case might
+#! be applying a binary operator to every value
+#! in the stack.
 	>| >|
 @.loop
 	# 1 >= &.end if
-	&.loop dcpy .
-@.end dpop ret
+	&.loop cpyd .
+@.end popd ret
 
-#! @iota #! ( a b cont -> ... )
-#! 	>| >|
-#! @.loop
-#! 	dup ++ dup ++
-#! 	dcpy >= &.loop if
-#! @.end dpop ret
+@iota #! ( a b cont -> ... )
+#! `iota` pushes a sequence of values in the
+#! specified range. `a` is the starting value
+#! and `b` is the ending value.
+>| undr - &dup++ swp times ret
+
+@seq >| 1 swp iota ret #! ( n cont -> ... )
+
+@times #! ( fn n cont -> ... )
+#! `times` applies a function to the stack
+#! `n` times. You can think of it as an
+#! abstraction of a simple `for` loop. The
+#! stack size may change. The deque size
+#! may not change.
+	>| swp >| >|
+@.loop
+	cpyd &.end ifz
+	|> -- >|
+	swpd cpyd swpd call
+	&.loop .
+@.end popd popd ret
+
+#! VARIADICS
+@+v &+ swp &reduce .
+@-v &- swp &reduce .
+@*v &* swp &reduce .
+@/v &/ swp &reduce .
+
+#! TIMES
+@popn >| &pop swp times ret #! ( ... n cont -> ... )
+@dupn >| &dup swp times ret #! ( ... n cont -> ... )
+@clr >| # popn ret #! ( ... cont -> )
 

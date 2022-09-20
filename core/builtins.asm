@@ -1,22 +1,3 @@
-; UTILITIES
-d_23: ; #
-___count: ; ( cont -> x )
-; Pushes the stack element count to the stack.
-	pop r10
-	mov rax, r9  ; `r9` is the current marker.
-	sub rax, rsp
-	shr rax, 3   ; Divide by `8` because we're using quad words on x86-64.
-	push rax
-	jmp r10
-
-d_636c656172: ; clear
-___clear: ; ( ... cont -> )
-; Empty the stack.
-	pop r10
-	mov rsp, r9  ; Set the stack pointer to the current marker.
-	jmp r10
-
-
 ; CONTROL FLOW
 d_5b: ; [
 ___mark: ; ( cont -> | mark )
@@ -80,28 +61,6 @@ ___pop: ; ( val cont -> )
 	pop rax
 	jmp r10
 
-d_737770: ; swp
-___swp: ; ( a b cont -> b a )
-; Swap the top two elements of the stack.
-	pop r10
-	pop rax ; b
-	pop rbx ; a
-	push rax ; b
-	push rbx ; a
-	jmp r10
-
-d_726f7472: ; rotr
-___rotr: ; ( a b c cont -> c a b )
-; Rotate the top three stack elements to the right.
-	pop r10
-	pop rax ; c
-	pop rbx ; b
-	pop rcx ; a
-	push rax ; c
-	push rcx ; a
-	push rbx ; b
-	jmp r10
-
 d_676574: ; get
 ___get: ; ( i cont -> x )
 ; Copy the element at index `i` in the stack to the
@@ -120,11 +79,11 @@ ___set: ; ( x i cont -> )
 ; Sets index `i` in the stack to value `x`.
 ; We multiply the given index by `8` and then access
 ; from the top of the stack.
-	pop r10
-	pop rax
-	pop rbx
+	pop r10 ; cont
+	pop rax ; i
+	pop rbx ; x
 	shl rax, 3
-	mov [rsp + rax], rbx
+	mov qword [rsp + rax], rbx
 	jmp r10
 
 d_6d676574: ; mget
@@ -139,9 +98,9 @@ ___mget: ; ( addr cont -> x )
 d_6d736574: ; mset
 ___mset: ; ( x addr cont -> )
 ; Set the value at a given memory address to the value `x`.
-	pop r10
-	pop rax
-	pop rbx
+	pop r10 ; cont
+	pop rax ; addr
+	pop rbx ; x
 	mov [rax], rbx
 	jmp r10
 
@@ -175,14 +134,16 @@ ___mul: ; ( a b cont -> q )
 	jmp r10
 
 d_2f: ; /
-___div: ; ( a b -> q )
+___div: ; ( a b cont -> q )
 ; We need to sign extend `rax` to `rdx` because
 ; `idiv` operates on 128 bits.
+	pop r10
 	pop rax
 	pop rbx
 	cqo
 	idiv rbx
 	push rax
+	jmp r10
 
 d_5c: ; %
 ___mod: ; ( a b cont -> q )

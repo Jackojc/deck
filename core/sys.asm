@@ -23,6 +23,33 @@ sys_ok: ; ( -> )
 	syscall
 
 
+; MEMORY
+d_7379735f6d6d6170:
+sys_mmap: ; ( n cont -> p )
+	pop r13 ; cont
+	pop rsi ; n
+
+	mov rax, 9  ; mmap
+	mov rdi, 0  ; addr
+	mov rdx, 3  ; prot
+	mov r10, 34 ; flags
+	mov r8, -1  ; fd
+	mov r9, 0   ; offset
+	syscall
+	push rax    ; ptr
+
+	jmp r13
+
+d_7379735f756e6d6170:
+sys_unmap: ; ( ptr n cont -> )
+	mov rax, 11
+	mov rdi, [rsp + 8]
+	mov rsi, [rsp + 16]
+
+	add rsp, 24
+	jmp [rsp - 24]
+
+
 ; INPUT/OUTPUT
 d_696f5f72656164:
 io_read: ; ( cont -> x )

@@ -38,3 +38,23 @@
 	push %%here
 %endmacro
 
+%macro ___count 0 ; ( -> n )
+; Pushes the stack element count to the stack.
+	mov rax, r9  ; `r9` is the current marker.
+	sub rax, rsp
+	shr rax, 3   ; Divide by `8` because we're using quad words on x86-64.
+	push rax
+%endmacro
+
+%macro ___word 0 ; ( -> x )
+; Pushes the word size in bits to the stack.
+; Ideally this should enable Deck to be more
+; platform agnostic.
+	push qword 64
+%endmacro
+
+%macro ___byte 0 ; ( -> x )
+; Pushes the byte size in bits to the stack.
+	push qword 8
+%endmacro
+

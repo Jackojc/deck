@@ -5,9 +5,11 @@ number ::= ? [0-9]+ ? | ? 0x[0-9A-Fa-f]+ ?
 addr ::= '&' <identifier>
 workspace ::= '[' <instruction>* ']'
 label ::= '@' <identifier>
+let ::= 'let' <identifier> <instruction>+
+anon ::= '{' <instruction>+ '}'
 
 instruction ::=
-	<workspace> | <label> | <identifier> | <addr> |
+	<anon> | <let> | <workspace> | <label> | <identifier> | <addr> |
 	'+' | '-' | '*' | '/' | '%'
 
 function ::= <instruction>* '::' <identifier>

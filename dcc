@@ -3,16 +3,19 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-rm deck.asm
+TMP="$(mktemp)"
 
-cat "core/core.asm" >> deck.asm
-cat "core/builtins.asm" >> deck.asm
-cat "core/sys.asm" >> deck.asm
+cat "core/core.asm" >> "${TMP}.asm"
+cat "core/builtins.asm" >> "${TMP}.asm"
+cat "core/sys.asm" >> "${TMP}.asm"
 
-echo "; BEGIN PROGRAM ;" >> deck.asm
-echo "___header" >> deck.asm
+echo "; BEGIN PROGRAM ;" >> "${TMP}.asm"
+echo "___header" >> "${TMP}.asm"
 
-cat - <(cat "core/prelude.dk") | sed "s/#!.*//g" | tr -s '[:space:]' '\n' | \
+cat - <(cat "core/prelude.dk") | \
+sed "s/#!.*//g" | \
+m4 -P | \
+tr -s '[:space:]' '\n' | \
 while read -r word; do
 	if [[ "$word" =~ ^[[:digit:]]+$ ]] ; then
 		sed 's/^/___push /' <<< "$word"
@@ -32,15 +35,17 @@ while read -r word; do
 	elif [[ "$word" =~ ^\.[[:graph:]]+$ ]] ; then
 		printf '%s' "${word}" | xxd -p | sed 's/^/___call .d_/'
 
-	elif [[ "$word" =~ ^(here|go)$ ]] ; then
+	elif [[ "$word" =~ ^(here|go|count|word|byte)$ ]] ; then
 		printf '%s\n' "${word}" | sed 's/^/___/'
 
 	elif [[ "$word" =~ ^[[:graph:]]+$ ]] ; then
 		printf '%s' "${word}" | xxd -p | sed 's/^/___call d_/'
 
 	fi
-done >> deck.asm
+done >> "${TMP}.asm"
 
-nasm -O3 -felf64 deck.asm -o deck.o
-ld -o deck deck.o -s -n --gc-sections
+nasm -O3 -felf64 "${TMP}.asm" -o "${TMP}.o"
+ld -o "$TMP" "${TMP}.o" -s -n --gc-sections
+
+mv "${TMP}" "$1"
 
