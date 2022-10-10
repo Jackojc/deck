@@ -34,8 +34,8 @@
 
 %macro ___here 0 ; ( -> ip )
 ; Pushes the current instruction pointer to the stack.
-	%%here:
-	push %%here
+	; %%here:
+	push $
 %endmacro
 
 %macro ___count 0 ; ( -> n )
@@ -43,7 +43,7 @@
 	mov rax, r9  ; `r9` is the current marker.
 	sub rax, rsp
 	shr rax, 3   ; Divide by `8` because we're using quad words on x86-64.
-	push rax
+	push qword rax
 %endmacro
 
 %macro ___word 0 ; ( -> x )

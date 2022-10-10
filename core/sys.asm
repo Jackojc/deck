@@ -28,6 +28,7 @@ d_7379735f6d6d6170:
 sys_mmap: ; ( n cont -> p )
 	pop r13 ; cont
 	pop rsi ; n
+	push r9
 
 	mov rax, 9  ; mmap
 	mov rdi, 0  ; addr
@@ -36,6 +37,7 @@ sys_mmap: ; ( n cont -> p )
 	mov r8, -1  ; fd
 	mov r9, 0   ; offset
 	syscall
+	pop r9
 	push rax    ; ptr
 
 	jmp r13
