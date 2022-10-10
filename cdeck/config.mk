@@ -1,0 +1,17 @@
+# cdc version (ISO 8601)
+VERSION=2022-09-28
+
+CXX=g++
+
+CDC_CXXSTD=c++17
+CDC_CXXWARN=-Werror -Wall -Wextra -Wno-unused -pedantic -Wno-unused-parameter
+
+# CDC_CPPFLAGS=-DCDC_VERSION=\"$(VERSION)\" -DNDEBUG
+# CDC_CXXFLAGS=-std=$(CDC_CXXSTD) $(CDC_CXXWARN) $(CDC_CPPFLAGS) \
+# 	-march=native -O3 $(CXXFLAGS)
+# CDC_LDFLAGS=-flto -s $(LDFLAGS)
+
+CDC_CPPFLAGS=-DCDC_VERSION=\"$(VERSION)\"
+CDC_CXXFLAGS=-std=$(CDC_CXXSTD) $(CDC_CXXWARN) $(CDC_CPPFLAGS) $(CXXFLAGS)
+CDC_LDFLAGS=$(LDFLAGS)
+
