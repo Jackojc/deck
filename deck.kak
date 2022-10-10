@@ -7,14 +7,18 @@ provide-module -override deck %{
 	add-highlighter shared/deck/comment region '#!' '$' group
 	add-highlighter shared/deck/comment/ fill comment
 
+	# string
+	add-highlighter shared/deck/string region '"' (?<!\\)(\\\\)*" group
+	add-highlighter shared/deck/string/ fill string
+
 	# values/operators
 	evaluate-commands %sh{
 		values='\d+'
-		operators='\+|-|\*|/|%|<<|>>|=|!=|<|<=|>|>=|#|\?|\.|>\||\|>|\[|\]'
-		addr='&[^\s]*'
-		label='@[^\s]*'
+		operators='#|\?|\|>|>\||\+|-|\*|/|%|<<|>>|&|\||\^|~|=|!=|<|<=|>|>=|\{|\}|\[|\]'
+		addr='&\s*[^\s]*'
+		label='@\s*[^\s]*'
 		call='[^\s]*'
-		builtins='here|go'
+		builtins='let|go|here|word|byte|pop|get|set|mget|mset|::'
 
 		printf %s "
 			add-highlighter shared/deck/other/ regex (\s|^)\K("${values}")(\s|$)(("${values}")(\s|$))* 0:value

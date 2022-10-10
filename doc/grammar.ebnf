@@ -6,10 +6,10 @@ addr ::= '&' <identifier>
 workspace ::= '[' <instruction>* ']'
 label ::= '@' <identifier>
 let ::= 'let' <identifier> <instruction>+
-anon ::= '{' <instruction>+ '}'
+quote ::= '{' <instruction>+ '}'
 
 instruction ::=
-	<anon> | <let> | <workspace> | <label> | <identifier> | <addr> |
+	<quote> | <let> | <workspace> | <label> | <identifier> | <addr> |
 	'+' | '-' | '*' | '/' | '%'
 
 function ::= <instruction>* '::' <identifier>
