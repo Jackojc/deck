@@ -99,12 +99,14 @@ This will spit out a compiled ELF64 binary with the name `bin` in the
 local directory.
 
 ### Resources
-https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
-https://www.nasm.us/xdoc/2.13.03/html/nasmdoc0.html
-https://www.felixcloutier.com/x86/
-https://arxiv.org/pdf/2011.05608v1.pdf
-https://legacy.cs.indiana.edu/~dyb/pubs/ddcg.pdf
-https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.156.2546&rep=rep1&type=pdf
+- https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
+- https://www.nasm.us/xdoc/2.13.03/html/nasmdoc0.html
+- https://www.felixcloutier.com/x86/
+- https://arxiv.org/pdf/2011.05608v1.pdf
+- https://legacy.cs.indiana.edu/~dyb/pubs/ddcg.pdf
+- https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.156.2546&rep=rep1&type=pdf
+- https://bernsteinbear.com/assets/img/46b-codegeneration-in-V8.pdf
+- https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/dps-fhpc17.pdf
 
 ### License
 This project uses the GPL-3.0 license. (check [LICENSE](LICENSE))
