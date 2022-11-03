@@ -9,8 +9,11 @@
 	potentially include them multiple times.
 
 	#include <utility>
+	#include <algorithm>
 	#include <memory>
 	#include <vector>
+	#include <list>
+	#include <string>
 	#include <unordered_set>
 	#include <unordered_map>
 	#include <iostream>
@@ -318,8 +321,6 @@ namespace cdc {
 		\
 		X(EXPECT_FN,          "expected a function") \
 		X(EXPECT_IDENT,       "expected an identifier") \
-		X(EXPECT_LABEL,       "expected a label") \
-		X(EXPECT_ADDR,        "expected an address") \
 		X(EXPECT_INSTRUCTION, "expected an instruction") \
 		X(EXPECT_QUOTE,       "expected a quote") \
 		X(EXPECT_UNQUOTE,     "expected end of quote") \
@@ -393,63 +394,55 @@ namespace cdc {
 	}
 
 	#define SYMBOL_KINDS \
-		X(NONE,     "none") \
-		X(TERM,     "eof") \
+		X(NONE,     "None") \
+		X(TERM,     "EOF") \
 		\
-		X(REF,      "ref") \
-		X(CALL,     "call") \
+		X(BIND,     "Bind") \
 		\
-		X(PROGRAM,  "program") \
-		X(ADDR,     "addr") \
-		X(LABEL,    "label") \
-		X(IDENT,    "ident") \
-		X(INT,      "int") \
-		X(STR,      "str") \
+		X(PROGRAM,  "Program") \
+		X(ADDR,     "Address") \
+		X(IDENT,    "Identifier") \
+		X(INT,      "Integer") \
+		X(STR,      "String") \
 		\
-		X(FN,       "fn") \
-		X(LET,      "let") \
+		X(FN,       "Function") \
+		X(LET,      "Let") \
+		X(MARK,     "Mark") \
+		X(QUOTE,    "Quote") \
 		\
-		X(MARK,     "mark") \
-		X(UNMARK,   "unmark") \
+		X(UNMARK,   "Unmark") \
+		X(UNQUOTE,  "Unquote") \
 		\
-		X(QUOTE,    "quote") \
-		X(UNQUOTE,  "unquote") \
+		X(END,      "End") \
 		\
-		X(GO,       "go") \
-		X(HERE,     "here") \
-		X(COUNT,    "count") \
-		X(WORD,     "word") \
-		X(BYTE,     "byte") \
-		X(CHOOSE,   "choose") \
+		X(CALL,     "Call") \
+		X(GO,       "Go") \
+		X(COUNT,    "Count") \
+		X(WORD,     "Word") \
+		X(BYTE,     "Byte") \
+		X(CHOOSE,   "Choose") \
 		\
-		X(DEQ_PUSH, "deq_push") \
-		X(DEQ_POP,  "deq_pop") \
+		X(DEQ_PUSH, "Deque Push") \
+		X(DEQ_POP,  "Deque Pop") \
 		\
-		X(POP,      "pop") \
-		X(GET,      "get") \
-		X(SET,      "set") \
-		X(MGET,     "mget") \
-		X(MSET,     "mset") \
+		X(POP,      "Pop") \
+		X(GET,      "Get") \
+		X(SET,      "Set") \
 		\
-		X(ADD,      "add") \
-		X(SUB,      "sub") \
-		X(MUL,      "mul") \
-		X(DIV,      "div") \
-		X(MOD,      "mod") \
-		X(SHL,      "shl") \
-		X(SHR,      "shr") \
+		X(ADD,      "Add") \
+		X(SUB,      "Sub") \
+		X(MUL,      "Mul") \
+		X(DIV,      "Div") \
+		X(MOD,      "Mod") \
+		X(SHL,      "Shift Left") \
+		X(SHR,      "Shift Right") \
 		\
-		X(AND,      "and") \
-		X(OR,       "or") \
-		X(XOR,      "xor") \
-		X(NOT,      "not") \
+		X(AND,      "And") \
+		X(OR,       "Or") \
+		X(XOR,      "Xor") \
+		X(NOT,      "Not") \
 		\
-		X(EQ,       "eq") \
-		X(NOT_EQ,   "not_eq") \
-		X(LESS,     "less") \
-		X(LESS_EQ,  "less_eq") \
-		X(MORE,     "more") \
-		X(MORE_EQ,  "more_eq")
+		X(CMP,      "Compare")
 
 	#define X(a, b) a,
 		enum class SymbolKind: size_t { SYMBOL_KINDS };
@@ -515,9 +508,6 @@ namespace cdc {
 		else if (sym.sv == "{"_sv) { sym.kind = SymbolKind::QUOTE; lx.sv = next(lx.sv); }
 		else if (sym.sv == "}"_sv) { sym.kind = SymbolKind::UNQUOTE; lx.sv = next(lx.sv); }
 
-		else if (sym.sv == "&"_sv) { sym.kind = SymbolKind::ADDR; lx.sv = next(lx.sv); }
-		else if (sym.sv == "@"_sv) { sym.kind = SymbolKind::LABEL; lx.sv = next(lx.sv); }
-
 		else if (sym.sv == "\""_sv) {
 			sym.kind = SymbolKind::STR;
 			lx.sv = next(lx.sv);
@@ -551,7 +541,6 @@ namespace cdc {
 			if      (sym.sv == "."_sv)    sym.kind = SymbolKind::GO;
 			else if (sym.sv == "::"_sv)   sym.kind = SymbolKind::FN;
 			else if (sym.sv == "let"_sv)  sym.kind = SymbolKind::LET;
-			else if (sym.sv == "here"_sv) sym.kind = SymbolKind::HERE;
 			else if (sym.sv == "#"_sv)    sym.kind = SymbolKind::COUNT;
 			else if (sym.sv == "word"_sv) sym.kind = SymbolKind::WORD;
 			else if (sym.sv == "byte"_sv) sym.kind = SymbolKind::BYTE;
@@ -561,8 +550,6 @@ namespace cdc {
 			else if (sym.sv == "pop"_sv)  sym.kind = SymbolKind::POP;
 			else if (sym.sv == "get"_sv)  sym.kind = SymbolKind::GET;
 			else if (sym.sv == "set"_sv)  sym.kind = SymbolKind::SET;
-			else if (sym.sv == "mget"_sv) sym.kind = SymbolKind::MGET;
-			else if (sym.sv == "mset"_sv) sym.kind = SymbolKind::MSET;
 			else if (sym.sv == "+"_sv)    sym.kind = SymbolKind::ADD;
 			else if (sym.sv == "-"_sv)    sym.kind = SymbolKind::SUB;
 			else if (sym.sv == "*"_sv)    sym.kind = SymbolKind::MUL;
@@ -574,12 +561,7 @@ namespace cdc {
 			else if (sym.sv == "|"_sv)    sym.kind = SymbolKind::OR;
 			else if (sym.sv == "^"_sv)    sym.kind = SymbolKind::XOR;
 			else if (sym.sv == "~"_sv)    sym.kind = SymbolKind::NOT;
-			else if (sym.sv == "="_sv)    sym.kind = SymbolKind::EQ;
-			else if (sym.sv == "!="_sv)   sym.kind = SymbolKind::NOT_EQ;
-			else if (sym.sv == "<"_sv)    sym.kind = SymbolKind::LESS;
-			else if (sym.sv == "<="_sv)   sym.kind = SymbolKind::LESS_EQ;
-			else if (sym.sv == ">"_sv)    sym.kind = SymbolKind::MORE;
-			else if (sym.sv == ">="_sv)   sym.kind = SymbolKind::MORE_EQ;
+			else if (sym.sv == "<=>"_sv)  sym.kind = SymbolKind::CMP;
 		}
 
 		else
@@ -614,14 +596,9 @@ namespace cdc {
 	constexpr bool is_instruction(Symbol x) {
 		return cmp_any(x.kind,
 			SymbolKind::IDENT,
-			SymbolKind::REF,
-			SymbolKind::CALL,
 			SymbolKind::INT,
 			SymbolKind::STR,
-			SymbolKind::ADDR,
-			SymbolKind::LABEL,
 			SymbolKind::GO,
-			SymbolKind::HERE,
 			SymbolKind::COUNT,
 			SymbolKind::WORD,
 			SymbolKind::BYTE,
@@ -634,8 +611,6 @@ namespace cdc {
 			SymbolKind::POP,
 			SymbolKind::GET,
 			SymbolKind::SET,
-			SymbolKind::MGET,
-			SymbolKind::MSET,
 			SymbolKind::ADD,
 			SymbolKind::SUB,
 			SymbolKind::MUL,
@@ -647,12 +622,7 @@ namespace cdc {
 			SymbolKind::OR,
 			SymbolKind::XOR,
 			SymbolKind::NOT,
-			SymbolKind::EQ,
-			SymbolKind::NOT_EQ,
-			SymbolKind::LESS,
-			SymbolKind::LESS_EQ,
-			SymbolKind::MORE,
-			SymbolKind::MORE_EQ);
+			SymbolKind::CMP);
 	}
 
 	inline std::vector<Symbol> program(Lexer&);
@@ -662,7 +632,6 @@ namespace cdc {
 	inline std::vector<Symbol> let(Lexer&);
 	inline std::vector<Symbol> quote(Lexer&);
 
-	inline Symbol addr(Lexer&);
 	inline Symbol label(Lexer&);
 	inline Symbol literal(Lexer&);
 
@@ -671,30 +640,6 @@ namespace cdc {
 		CDC_LOG(LogLevel::INF);
 		expect(lx, is_literal, ErrorKind::EXPECT_LITERAL);
 		return take(lx);
-	}
-
-	inline Symbol label(Lexer& lx) {
-		CDC_LOG(LogLevel::INF);
-
-		expect(lx, is(SymbolKind::LABEL), ErrorKind::EXPECT_LABEL);
-		Symbol label = take(lx);
-
-		expect(lx, is(SymbolKind::IDENT), ErrorKind::EXPECT_IDENT);
-		Symbol ident = take(lx);
-
-		return Symbol { ident.sv, SymbolKind::LABEL };
-	}
-
-	inline Symbol addr(Lexer& lx) {
-		CDC_LOG(LogLevel::INF);
-
-		expect(lx, is(SymbolKind::ADDR), ErrorKind::EXPECT_ADDR);
-		Symbol addr = take(lx);
-
-		expect(lx, is(SymbolKind::IDENT), ErrorKind::EXPECT_IDENT);
-		Symbol ident = take(lx);
-
-		return { Symbol { ident.sv, SymbolKind::ADDR } };
 	}
 
 	inline std::vector<Symbol> quote(Lexer& lx) {
@@ -711,7 +656,9 @@ namespace cdc {
 		}
 
 		expect(lx, is(SymbolKind::UNQUOTE), ErrorKind::EXPECT_UNQUOTE);
-		symbols.push_back(take(lx));
+		Symbol unquote = take(lx);
+
+		symbols.emplace_back(unquote.sv, SymbolKind::END);
 
 		return symbols;
 	}
@@ -734,6 +681,8 @@ namespace cdc {
 			symbols.insert(symbols.end(), instructions.begin(), instructions.end());
 		}
 
+		symbols.emplace_back(ident.sv, SymbolKind::END);
+
 		return symbols;
 	}
 
@@ -751,7 +700,9 @@ namespace cdc {
 		}
 
 		expect(lx, is(SymbolKind::UNMARK), ErrorKind::EXPECT_UNMARK);
-		symbols.push_back(take(lx));
+		Symbol unmark = take(lx);
+
+		symbols.emplace_back(unmark.sv, SymbolKind::END);
 
 		return symbols;
 	}
@@ -764,12 +715,6 @@ namespace cdc {
 		// Literals.
 		if (cmp_any(lx.peek.kind, SymbolKind::INT, SymbolKind::STR))
 			symbols = { literal(lx) };
-
-		else if (lx.peek.kind == SymbolKind::ADDR)
-			symbols = { addr(lx) };
-
-		else if (lx.peek.kind == SymbolKind::LABEL)
-			symbols = { label(lx) };
 
 		// Nested.
 		else if (lx.peek.kind == SymbolKind::LET)
@@ -807,6 +752,7 @@ namespace cdc {
 		Symbol ident = take(lx);
 
 		symbols.emplace(symbols.begin(), ident.sv, SymbolKind::FN);
+		symbols.emplace_back(ident.sv, SymbolKind::END);
 
 		return symbols;
 	}
@@ -822,142 +768,85 @@ namespace cdc {
 			symbols.insert(symbols.end(), instructions.begin(), instructions.end());
 		}
 
-		symbols.emplace_back(lx.peek.sv, SymbolKind::TERM);
+		symbols.emplace_back(lx.peek.sv, SymbolKind::END);
 
 		return symbols;
 	}
 
 
 	// Semantic analysis passes.
-	// Add a pass for lowering quotes to functions before discovery.
+	struct Context {
+		std::unordered_map<View, SymbolKind> symbols;
+		std::list<std::string> intern;
+		size_t intern_id = 0;
+	};
 
-	inline std::vector<Symbol>::iterator discovery(
-		std::unordered_map<View, SymbolKind>& env,
+	// Visit a block (i.e. a run of code terminated by `end`).
+	// This is a common pattern that shows up in most visitors that
+	// traverse the AST like a tree rather than a vector.
+	template <typename F, typename... Ts>
+	inline std::vector<Symbol>::iterator visit_block(
+		Context& ctx,
 		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>::iterator end
+		std::vector<Symbol>& instructions,
+		F&& fn,
+		Ts&&... args
 	) {
-		// 1. Make sure the function we are calling exists.
-		// 2. Make sure labels exist in the context they are being referenced.
-		//    Labels are function local.
-		// 3. Match references to bindings.
-		//    Bindings are function local.
-		// 4. Make sure bindings don't shadow labels, functions or other bindings.
+		while (it->kind != SymbolKind::END)
+			it = fn(ctx, it, instructions, std::forward<Ts>(args)...);
 
-		if (it == end)
+		return it;
+	}
+
+	// Turn quotes into functions.
+	inline std::vector<Symbol>::iterator reduce_quotes(
+		Context& ctx,
+		std::vector<Symbol>::iterator it,
+		std::vector<Symbol>& instructions
+	) {
+		if (it == instructions.end())
 			return it;
+
+		CDC_LOG(LogLevel::INF, *it);
 
 		std::vector<Symbol>::iterator current = it++;
 
 		switch (current->kind) {
-			case SymbolKind::IDENT: {
-				// Ref(Binding) or Call(Function) or Address(Label)
-				// Look forward in program to discover functions or labels.
-				// We can cache after we find it the first time preventing multiple
-				// forward searches.
-				if (auto fit = env.find(current->sv); fit != env.end()) {
-					auto [sv, kind] = *fit;
-
-					if (kind == SymbolKind::LET)
-						current->kind = SymbolKind::REF;
-
-					else if (kind == SymbolKind::FN)
-						current->kind = SymbolKind::CALL;
-
-					else if (kind == SymbolKind::LABEL)
-						current->kind = SymbolKind::ADDR;
-				}
-
-				else {
-					while (is_instruction(*it))
-						it = discovery(env, it + 1, end);
-
-					if (auto fit = env.find(current->sv); fit != env.end()) {
-						auto [sv, kind] = *fit;
-
-						if (kind == SymbolKind::LET)
-							current->kind = SymbolKind::REF;
-
-						else if (kind == SymbolKind::FN)
-							current->kind = SymbolKind::CALL;
-
-						else if (kind == SymbolKind::LABEL)
-							current->kind = SymbolKind::ADDR;
-					}
-
-					else
-						report(current->sv, ErrorKind::UNDEFINED);
-				}
-
-			} break;
-
-			case SymbolKind::ADDR: {
-				// Cannot take address of label.
-				// Can take address of function.
-
-				if (auto find_it = env.find(current->sv); find_it != env.end()) {
-					auto [sv, kind] = *find_it;
-
-					if (kind == SymbolKind::LABEL)
-						report(current->sv, ErrorKind::NOT_IMPLEMENTED);
-				}
-
-				else
-					report(current->sv, ErrorKind::UNDEFINED);
-			} break;
-
-			case SymbolKind::LABEL: {
-				// Check for conflicts with functions and bindings and other labels.
-				auto [label_it, succ] = env.emplace(current->sv, SymbolKind::LABEL);
-
-				if (not succ)
-					report(current->sv, ErrorKind::CLASH);
-			} break;
-
-			// Nested structures.
-			case SymbolKind::PROGRAM: {
-				while (it->kind != SymbolKind::TERM)
-					it = discovery(env, it, end);
-			} break;
-
-			case SymbolKind::FN: {
-				// Add name to functions env.
-				auto [fn_it, succ] = env.emplace(current->sv, SymbolKind::FN);
-
-				if (not succ)
-					report(current->sv, ErrorKind::CLASH);
-
-				while (is_instruction(*it))
-					it = discovery(env, it, end);
-
-				// Clear bindings and labels
-			} break;
-
-			case SymbolKind::LET: {
-				// Add name to bindings env.
-				auto [let_it, succ] = env.emplace(current->sv, SymbolKind::LET);
-
-				if (not succ)
-					report(current->sv, ErrorKind::CLASH);
-
-				while (is_instruction(*it))
-					it = discovery(env, it, end);
-
-				// Remove name from bindings env.
-				env.erase(current->sv);
-			} break;
-
-			case SymbolKind::MARK: {
-				while (is_instruction(*it))
-					it = discovery(env, it, end);
-
-				it++;
-			} break;
-
 			case SymbolKind::QUOTE: {
-				while (is_instruction(*it))
-					it = discovery(env, it, end);
+				// Generate a unique name for this quote.
+				std::string& id = ctx.intern.emplace_back("___fn_" + std::to_string(ctx.intern_id++));
+				View sv { id.data(), id.data() + id.size() };
 
-				it++;
+				// Change quote to address.
+				current->kind = SymbolKind::ADDR;
+				current->sv = sv;
+
+				// Copy the quote symbol directly after.
+				current = it = instructions.insert(current, *current) + 1;
+
+				// Recurse and visit the body of the quote to find the end position.
+				std::vector<Symbol>::iterator until = visit_block(ctx, it, instructions, reduce_quotes) + 1;
+				it = current;
+
+				size_t length = std::distance(current, until);
+
+				// Move quote to the end of the program and find new beginning and end.
+				std::vector<Symbol>::iterator head = std::rotate(current, until, instructions.end() - 1);
+				std::vector<Symbol>::iterator tail = head + length;
+
+				tail--;
+
+				// Change quote symbol to function symbol.
+				head->kind = SymbolKind::FN;
+				head->sv = sv;
+				tail->sv = sv;
+			} break;
+
+			case SymbolKind::PROGRAM:
+			case SymbolKind::MARK:
+			case SymbolKind::LET:
+			case SymbolKind::FN: {
+				it = visit_block(ctx, it, instructions, reduce_quotes) + 1;
 			} break;
 
 			default: break;
@@ -966,226 +855,256 @@ namespace cdc {
 		return it;
 	}
 
-	inline void discovery(std::vector<Symbol>& instructions) {
-		std::unordered_map<View, SymbolKind> env;
-		discovery(env, instructions.begin(), instructions.end());
+	// Find function definitions and record their names.
+	inline std::vector<Symbol>::iterator discover(
+		Context& ctx,
+		std::vector<Symbol>::iterator it,
+		std::vector<Symbol>& instructions
+	) {
+		if (it == instructions.end())
+			return it;
+
+		CDC_LOG(LogLevel::INF, it->kind);
+
+		const std::vector<Symbol>::iterator current = it++;
+
+		switch (current->kind) {
+			case SymbolKind::FN: {
+				// Add the function name to the symbol table.
+				auto [fn_it, succ] = ctx.symbols.emplace(current->sv, SymbolKind::FN);
+
+				// If this symbol already exists, we have a naming conflict.
+				if (not succ)
+					report(current->sv, ErrorKind::CLASH);
+
+				it = visit_block(ctx, it, instructions, discover) + 1;
+			} break;
+
+			case SymbolKind::PROGRAM:
+			case SymbolKind::MARK:
+			case SymbolKind::QUOTE:
+			case SymbolKind::LET: {
+				it = visit_block(ctx, it, instructions, discover) + 1;
+			} break;
+
+			default: break;
+		}
+
+		return it;
 	}
 
+	// Verify that functions exist and bindings are in scope.
+	inline std::vector<Symbol>::iterator verify(
+		Context& ctx,
+		std::vector<Symbol>::iterator it,
+		std::vector<Symbol>& instructions
+	) {
+		if (it == instructions.end())
+			return it;
+
+		CDC_LOG(LogLevel::INF, it->kind);
+
+		std::vector<Symbol>::iterator current = it++;
+
+		switch (current->kind) {
+			case SymbolKind::IDENT: {
+				// Check if this symbol exists and, if so, change this identifier
+				// to either an address or binding to match the definition.
+				auto it = ctx.symbols.find(current->sv);
+
+				if (it == ctx.symbols.end())
+					report(current->sv, ErrorKind::UNDEFINED);
+
+				switch (it->second) {
+					case SymbolKind::FN:  current->kind = SymbolKind::ADDR; break;
+					case SymbolKind::LET: current->kind = SymbolKind::BIND; break;
+					default: break;
+				}
+			} break;
+
+			case SymbolKind::LET: {
+				// Add name to bindings ctx.
+				auto [let_it, succ] = ctx.symbols.emplace(current->sv, SymbolKind::LET);
+
+				if (not succ)
+					report(current->sv, ErrorKind::CLASH);
+
+				it = visit_block(ctx, it, instructions, verify) + 1;
+
+				// Remove name from bindings ctx.
+				ctx.symbols.erase(current->sv);
+			} break;
+
+			case SymbolKind::PROGRAM:
+			case SymbolKind::MARK:
+			case SymbolKind::QUOTE:
+			case SymbolKind::FN: {
+				it = visit_block(ctx, it, instructions, verify) + 1;
+			} break;
+
+			default: break;
+		}
+
+		return it;
+	}
 
 	// Pretty printer.
-	// inline std::vector<Symbol>::iterator pretty_print(
-	// 	std::vector<Symbol>::iterator it,
-	// 	std::vector<Symbol>::iterator end,
-	// 	size_t spaces = 0
-	// ) {
-	// 	const auto indent = [&] {
-	// 		for (size_t i = 0; i != spaces; ++i)
-	// 			print(std::cout, "  ");
-	// 	};
+	inline std::vector<Symbol>::iterator pretty_print(
+		Context& ctx,
+		std::vector<Symbol>::iterator it,
+		std::vector<Symbol>& instructions,
+		size_t spaces = 0
+	) {
+		const auto indent = [&] {
+			for (size_t i = 0; i != spaces; ++i)
+				print(std::cout, "  ");
+		};
 
-	// 	if (it == end)
-	// 		return it;
+		if (it == instructions.end())
+			return it;
 
-	// 	std::vector<Symbol>::iterator current = it++;
+		std::vector<Symbol>::iterator current = it++;
 
-	// 	switch (current->kind) {
-	// 		// Literals.
-	// 		case SymbolKind::INT: {
-	// 			indent(); println(std::cout, "Integer ", current->sv);
-	// 		} break;
+		switch (current->kind) {
+			case SymbolKind::END:        // These node types are not valid at this stage.
+			case SymbolKind::UNMARK:     // They should have been removed during parsing.
+			case SymbolKind::UNQUOTE: {
+				report(current->sv, ErrorKind::UNREACHABLE);
+			} break;
 
-	// 		case SymbolKind::STR: {
-	// 			indent(); println(std::cout, "String \"", current->sv, "\"");
-	// 		} break;
+			// Literals.
+			case SymbolKind::IDENT:
+			case SymbolKind::BIND:
+			case SymbolKind::ADDR:
 
-	// 		case SymbolKind::REF: {
-	// 			indent(); println(std::cout, "Ref ", current->sv);
-	// 		} break;
+			case SymbolKind::INT:
+			case SymbolKind::STR: {
+				indent(); println(std::cout, current->kind, " ", current->sv);
+			} break;
 
-	// 		case SymbolKind::CALL: {
-	// 			indent(); println(std::cout, "Call ", current->sv);
-	// 		} break;
+			// Builtins
+			case SymbolKind::CMP:
 
-	// 		case SymbolKind::IDENT: {
-	// 			report(current->sv, ErrorKind::UNREACHABLE);
-	// 		} break;
+			case SymbolKind::NOT:
+			case SymbolKind::XOR:
+			case SymbolKind::OR:
+			case SymbolKind::AND:
 
-	// 		case SymbolKind::ADDR: {
-	// 			indent(); println(std::cout, "Address ", current->sv);
-	// 		} break;
+			case SymbolKind::SHR:
+			case SymbolKind::SHL:
 
-	// 		case SymbolKind::LABEL: {
-	// 			indent(); println(std::cout, "Label ", current->sv);
-	// 		} break;
+			case SymbolKind::MOD:
+			case SymbolKind::DIV:
+			case SymbolKind::MUL:
+			case SymbolKind::SUB:
+			case SymbolKind::ADD:
 
+			case SymbolKind::SET:
+			case SymbolKind::GET:
 
-	// 		// Builtins
-	// 		case SymbolKind::GO: {
-	// 			indent(); println(std::cout, "Go");
-	// 		} break;
+			case SymbolKind::POP:
 
-	// 		case SymbolKind::HERE: {
-	// 			indent(); println(std::cout, "Here");
-	// 		} break;
+			case SymbolKind::DEQ_POP:
+			case SymbolKind::DEQ_PUSH:
 
-	// 		case SymbolKind::COUNT: {
-	// 			indent(); println(std::cout, "Count");
-	// 		} break;
+			case SymbolKind::CHOOSE:
+			case SymbolKind::BYTE:
+			case SymbolKind::WORD:
+			case SymbolKind::COUNT:
+			case SymbolKind::GO:
+			case SymbolKind::CALL: {
+				indent(); println(std::cout, current->kind);
+			} break;
 
-	// 		case SymbolKind::WORD: {
-	// 			indent(); println(std::cout, "Word");
-	// 		} break;
+			// Nested structures.
+			case SymbolKind::PROGRAM:
+			case SymbolKind::MARK:
+			case SymbolKind::QUOTE:
+			case SymbolKind::LET:
+			case SymbolKind::FN: {
+				indent(); println(std::cout, current->kind, " ", current->sv);
+					it = visit_block(ctx, it, instructions, pretty_print, spaces + 1);
+				indent(); println(std::cout, it->kind, " ", it->sv);
 
-	// 		case SymbolKind::BYTE: {
-	// 			indent(); println(std::cout, "Byte");
-	// 		} break;
+				++it;
+			} break;
 
-	// 		case SymbolKind::CHOOSE: {
-	// 			indent(); println(std::cout, "Choose");
-	// 		} break;
+			default: break;
+		}
 
-	// 		case SymbolKind::DEQ_PUSH: {
-	// 			indent(); println(std::cout, "Deque Push");
-	// 		} break;
+		return it;
+	}
 
-	// 		case SymbolKind::DEQ_POP: {
-	// 			indent(); println(std::cout, "Deque Pop");
-	// 		} break;
+	inline std::vector<Symbol>::iterator emit(
+		Context& ctx,
+		std::vector<Symbol>::iterator it,
+		std::vector<Symbol>& instructions
+	) {
+		if (it == instructions.end())
+			return it;
 
-	// 		case SymbolKind::POP: {
-	// 			indent(); println(std::cout, "Pop");
-	// 		} break;
+		CDC_LOG(LogLevel::INF, it->kind);
 
-	// 		case SymbolKind::GET: {
-	// 			indent(); println(std::cout, "Get");
-	// 		} break;
+		std::vector<Symbol>::iterator current = it++;
 
-	// 		case SymbolKind::SET: {
-	// 			indent(); println(std::cout, "Set");
-	// 		} break;
+		switch (current->kind) {
+			case SymbolKind::BIND:
+			case SymbolKind::ADDR:
+			case SymbolKind::INT:
+			case SymbolKind::STR:
 
-	// 		case SymbolKind::MGET: {
-	// 			indent(); println(std::cout, "Memory Get");
-	// 		} break;
+			case SymbolKind::CMP:
 
-	// 		case SymbolKind::MSET: {
-	// 			indent(); println(std::cout, "Memory Set");
-	// 		} break;
+			case SymbolKind::NOT:
+			case SymbolKind::XOR:
+			case SymbolKind::OR:
+			case SymbolKind::AND:
 
-	// 		case SymbolKind::ADD: {
-	// 			indent(); println(std::cout, "Add");
-	// 		} break;
+			case SymbolKind::SHR:
+			case SymbolKind::SHL:
 
-	// 		case SymbolKind::SUB: {
-	// 			indent(); println(std::cout, "Sub");
-	// 		} break;
+			case SymbolKind::MOD:
+			case SymbolKind::DIV:
+			case SymbolKind::MUL:
+			case SymbolKind::SUB:
+			case SymbolKind::ADD:
 
-	// 		case SymbolKind::MUL: {
-	// 			indent(); println(std::cout, "Mul");
-	// 		} break;
+			case SymbolKind::SET:
+			case SymbolKind::GET:
 
-	// 		case SymbolKind::DIV: {
-	// 			indent(); println(std::cout, "Div");
-	// 		} break;
+			case SymbolKind::POP:
 
-	// 		case SymbolKind::MOD: {
-	// 			indent(); println(std::cout, "Mod");
-	// 		} break;
+			case SymbolKind::DEQ_POP:
+			case SymbolKind::DEQ_PUSH:
 
-	// 		case SymbolKind::SHL: {
-	// 			indent(); println(std::cout, "Shift Left");
-	// 		} break;
+			case SymbolKind::CHOOSE:
+			case SymbolKind::BYTE:
+			case SymbolKind::WORD:
+			case SymbolKind::COUNT:
+			case SymbolKind::GO:
+			case SymbolKind::CALL: break;
 
-	// 		case SymbolKind::SHR: {
-	// 			indent(); println(std::cout, "Shift Right");
-	// 		} break;
+			case SymbolKind::PROGRAM:
+			case SymbolKind::MARK:
+			case SymbolKind::LET:
+			case SymbolKind::FN: {
+				it = visit_block(ctx, it, instructions, emit) + 1;
+			} break;
 
-	// 		case SymbolKind::AND: {
-	// 			indent(); println(std::cout, "And");
-	// 		} break;
+			case SymbolKind::END:        // These node types are not valid at this stage.
+			case SymbolKind::UNMARK:     // They should have been removed during earlier passes.
+			case SymbolKind::UNQUOTE:
+			case SymbolKind::QUOTE:
+			case SymbolKind::IDENT: {
+				report(current->sv, ErrorKind::UNREACHABLE);
+			} break;
 
-	// 		case SymbolKind::OR: {
-	// 			indent(); println(std::cout, "Or");
-	// 		} break;
+			default: break;
+		}
 
-	// 		case SymbolKind::XOR: {
-	// 			indent(); println(std::cout, "Xor");
-	// 		} break;
+		return it;
+	}
 
-	// 		case SymbolKind::NOT: {
-	// 			indent(); println(std::cout, "Not");
-	// 		} break;
-
-	// 		case SymbolKind::EQ: {
-	// 			indent(); println(std::cout, "Equal");
-	// 		} break;
-
-	// 		case SymbolKind::NOT_EQ: {
-	// 			indent(); println(std::cout, "Not Equal");
-	// 		} break;
-
-	// 		case SymbolKind::LESS: {
-	// 			indent(); println(std::cout, "Less");
-	// 		} break;
-
-	// 		case SymbolKind::LESS_EQ: {
-	// 			indent(); println(std::cout, "Less Or Equal");
-	// 		} break;
-
-	// 		case SymbolKind::MORE: {
-	// 			indent(); println(std::cout, "More");
-	// 		} break;
-
-	// 		case SymbolKind::MORE_EQ: {
-	// 			indent(); println(std::cout, "More Or Equal");
-	// 		} break;
-
-
-	// 		// Nested structures.
-	// 		case SymbolKind::LET: {
-	// 			indent(); println(std::cout, "Let ", current->sv);
-
-	// 			while (is_instruction(*it))
-	// 				it = pretty_print(it, end, spaces + 1);
-
-	// 			indent(); println(std::cout, "End Let");
-	// 		} break;
-
-	// 		case SymbolKind::MARK: {
-	// 			indent(); println(std::cout, "Mark");
-
-	// 			while (is_instruction(*it))
-	// 				it = pretty_print(it, end, spaces + 1);
-
-	// 			it++;
-
-	// 			indent(); println(std::cout, "End Mark");
-	// 		} break;
-
-	// 		case SymbolKind::QUOTE: {
-	// 			indent(); println(std::cout, "Quote");
-
-	// 			while (is_instruction(*it))
-	// 				it = pretty_print(it, end, spaces + 1);
-
-	// 			it++;
-
-	// 			indent(); println(std::cout, "End Quote");
-	// 		} break;
-
-	// 		default: break;
-	// 	}
-
-	// 	return it;
-	// }
-
-	// inline void pretty_print(Context& ctx) {
-	// 	for (auto& [ident, instructions]: ctx.functions) {
-	// 		println(std::cout, "Function ", ident);
-	// 			pretty_print(instructions.begin(), instructions.end(), 1);
-	// 		println(std::cout, "End Function");
-	// 	}
-	// }
 }
 
 #endif
