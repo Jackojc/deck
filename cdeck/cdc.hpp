@@ -773,10 +773,14 @@ namespace cdc {
 		return symbols;
 	}
 
-
 	// Semantic analysis passes.
 	struct Context {
 		std::unordered_map<View, SymbolKind> symbols;
+		std::unordered_map<View, std::unordered_set<View>> refs;
+		std::unordered_map<View, std::pair<
+			std::vector<Symbol>::iterator,
+			std::vector<Symbol>::iterator
+		>> ranges;
 		std::list<std::string> intern;
 		size_t intern_id = 0;
 	};
@@ -795,316 +799,30 @@ namespace cdc {
 		while (it->kind != SymbolKind::END)
 			it = fn(ctx, it, instructions, std::forward<Ts>(args)...);
 
-		return it;
+		return it + 1;
 	}
 
-	// Turn quotes into functions.
-	inline std::vector<Symbol>::iterator reduce_quotes(
-		Context& ctx,
-		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>& instructions
-	) {
-		if (it == instructions.end())
-			return it;
-
-		CDC_LOG(LogLevel::INF, *it);
-
-		std::vector<Symbol>::iterator current = it++;
-
-		switch (current->kind) {
-			case SymbolKind::QUOTE: {
-				// Generate a unique name for this quote.
-				std::string& id = ctx.intern.emplace_back("___fn_" + std::to_string(ctx.intern_id++));
-				View sv { id.data(), id.data() + id.size() };
-
-				// Change quote to address.
-				current->kind = SymbolKind::ADDR;
-				current->sv = sv;
-
-				// Copy the quote symbol directly after.
-				current = it = instructions.insert(current, *current) + 1;
-
-				// Recurse and visit the body of the quote to find the end position.
-				std::vector<Symbol>::iterator until = visit_block(ctx, it, instructions, reduce_quotes) + 1;
-				it = current;
-
-				size_t length = std::distance(current, until);
-
-				// Move quote to the end of the program and find new beginning and end.
-				std::vector<Symbol>::iterator head = std::rotate(current, until, instructions.end() - 1);
-				std::vector<Symbol>::iterator tail = head + length;
-
-				tail--;
-
-				// Change quote symbol to function symbol.
-				head->kind = SymbolKind::FN;
-				head->sv = sv;
-				tail->sv = sv;
-			} break;
-
-			case SymbolKind::PROGRAM:
-			case SymbolKind::MARK:
-			case SymbolKind::LET:
-			case SymbolKind::FN: {
-				it = visit_block(ctx, it, instructions, reduce_quotes) + 1;
-			} break;
-
-			default: break;
-		}
-
-		return it;
-	}
-
-	// Find function definitions and record their names.
-	inline std::vector<Symbol>::iterator discover(
-		Context& ctx,
-		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>& instructions
-	) {
-		if (it == instructions.end())
-			return it;
-
-		CDC_LOG(LogLevel::INF, it->kind);
-
-		const std::vector<Symbol>::iterator current = it++;
-
-		switch (current->kind) {
-			case SymbolKind::FN: {
-				// Add the function name to the symbol table.
-				auto [fn_it, succ] = ctx.symbols.emplace(current->sv, SymbolKind::FN);
-
-				// If this symbol already exists, we have a naming conflict.
-				if (not succ)
-					report(current->sv, ErrorKind::CLASH);
-
-				it = visit_block(ctx, it, instructions, discover) + 1;
-			} break;
-
-			case SymbolKind::PROGRAM:
-			case SymbolKind::MARK:
-			case SymbolKind::QUOTE:
-			case SymbolKind::LET: {
-				it = visit_block(ctx, it, instructions, discover) + 1;
-			} break;
-
-			default: break;
-		}
-
-		return it;
-	}
-
-	// Verify that functions exist and bindings are in scope.
-	inline std::vector<Symbol>::iterator verify(
-		Context& ctx,
-		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>& instructions
-	) {
-		if (it == instructions.end())
-			return it;
-
-		CDC_LOG(LogLevel::INF, it->kind);
-
-		std::vector<Symbol>::iterator current = it++;
-
-		switch (current->kind) {
-			case SymbolKind::IDENT: {
-				// Check if this symbol exists and, if so, change this identifier
-				// to either an address or binding to match the definition.
-				auto it = ctx.symbols.find(current->sv);
-
-				if (it == ctx.symbols.end())
-					report(current->sv, ErrorKind::UNDEFINED);
-
-				switch (it->second) {
-					case SymbolKind::FN:  current->kind = SymbolKind::ADDR; break;
-					case SymbolKind::LET: current->kind = SymbolKind::BIND; break;
-					default: break;
-				}
-			} break;
-
-			case SymbolKind::LET: {
-				// Add name to bindings ctx.
-				auto [let_it, succ] = ctx.symbols.emplace(current->sv, SymbolKind::LET);
-
-				if (not succ)
-					report(current->sv, ErrorKind::CLASH);
-
-				it = visit_block(ctx, it, instructions, verify) + 1;
-
-				// Remove name from bindings ctx.
-				ctx.symbols.erase(current->sv);
-			} break;
-
-			case SymbolKind::PROGRAM:
-			case SymbolKind::MARK:
-			case SymbolKind::QUOTE:
-			case SymbolKind::FN: {
-				it = visit_block(ctx, it, instructions, verify) + 1;
-			} break;
-
-			default: break;
-		}
-
-		return it;
-	}
-
-	// Pretty printer.
-	inline std::vector<Symbol>::iterator pretty_print(
-		Context& ctx,
-		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>& instructions,
-		size_t spaces = 0
-	) {
-		const auto indent = [&] {
-			for (size_t i = 0; i != spaces; ++i)
-				print(std::cout, "  ");
-		};
-
-		if (it == instructions.end())
-			return it;
-
-		std::vector<Symbol>::iterator current = it++;
-
-		switch (current->kind) {
-			case SymbolKind::END:        // These node types are not valid at this stage.
-			case SymbolKind::UNMARK:     // They should have been removed during parsing.
-			case SymbolKind::UNQUOTE: {
-				report(current->sv, ErrorKind::UNREACHABLE);
-			} break;
-
-			// Literals.
-			case SymbolKind::IDENT:
-			case SymbolKind::BIND:
-			case SymbolKind::ADDR:
-
-			case SymbolKind::INT:
-			case SymbolKind::STR: {
-				indent(); println(std::cout, current->kind, " ", current->sv);
-			} break;
-
-			// Builtins
-			case SymbolKind::CMP:
-
-			case SymbolKind::NOT:
-			case SymbolKind::XOR:
-			case SymbolKind::OR:
-			case SymbolKind::AND:
-
-			case SymbolKind::SHR:
-			case SymbolKind::SHL:
-
-			case SymbolKind::MOD:
-			case SymbolKind::DIV:
-			case SymbolKind::MUL:
-			case SymbolKind::SUB:
-			case SymbolKind::ADD:
-
-			case SymbolKind::SET:
-			case SymbolKind::GET:
-
-			case SymbolKind::POP:
-
-			case SymbolKind::DEQ_POP:
-			case SymbolKind::DEQ_PUSH:
-
-			case SymbolKind::CHOOSE:
-			case SymbolKind::BYTE:
-			case SymbolKind::WORD:
-			case SymbolKind::COUNT:
-			case SymbolKind::GO:
-			case SymbolKind::CALL: {
-				indent(); println(std::cout, current->kind);
-			} break;
-
-			// Nested structures.
-			case SymbolKind::PROGRAM:
-			case SymbolKind::MARK:
-			case SymbolKind::QUOTE:
-			case SymbolKind::LET:
-			case SymbolKind::FN: {
-				indent(); println(std::cout, current->kind, " ", current->sv);
-					it = visit_block(ctx, it, instructions, pretty_print, spaces + 1);
-				indent(); println(std::cout, it->kind, " ", it->sv);
-
-				++it;
-			} break;
-
-			default: break;
-		}
-
-		return it;
-	}
-
-	inline std::vector<Symbol>::iterator emit(
-		Context& ctx,
-		std::vector<Symbol>::iterator it,
-		std::vector<Symbol>& instructions
-	) {
-		if (it == instructions.end())
-			return it;
-
-		CDC_LOG(LogLevel::INF, it->kind);
-
-		std::vector<Symbol>::iterator current = it++;
-
-		switch (current->kind) {
-			case SymbolKind::BIND:
-			case SymbolKind::ADDR:
-			case SymbolKind::INT:
-			case SymbolKind::STR:
-
-			case SymbolKind::CMP:
-
-			case SymbolKind::NOT:
-			case SymbolKind::XOR:
-			case SymbolKind::OR:
-			case SymbolKind::AND:
-
-			case SymbolKind::SHR:
-			case SymbolKind::SHL:
-
-			case SymbolKind::MOD:
-			case SymbolKind::DIV:
-			case SymbolKind::MUL:
-			case SymbolKind::SUB:
-			case SymbolKind::ADD:
-
-			case SymbolKind::SET:
-			case SymbolKind::GET:
-
-			case SymbolKind::POP:
-
-			case SymbolKind::DEQ_POP:
-			case SymbolKind::DEQ_PUSH:
-
-			case SymbolKind::CHOOSE:
-			case SymbolKind::BYTE:
-			case SymbolKind::WORD:
-			case SymbolKind::COUNT:
-			case SymbolKind::GO:
-			case SymbolKind::CALL: break;
-
-			case SymbolKind::PROGRAM:
-			case SymbolKind::MARK:
-			case SymbolKind::LET:
-			case SymbolKind::FN: {
-				it = visit_block(ctx, it, instructions, emit) + 1;
-			} break;
-
-			case SymbolKind::END:        // These node types are not valid at this stage.
-			case SymbolKind::UNMARK:     // They should have been removed during earlier passes.
-			case SymbolKind::UNQUOTE:
-			case SymbolKind::QUOTE:
-			case SymbolKind::IDENT: {
-				report(current->sv, ErrorKind::UNREACHABLE);
-			} break;
-
-			default: break;
-		}
-
-		return it;
-	}
-
+	// Introduce a pass to re-order function definitions so that the definition
+	// always appears before any calls. We can do this by first generating a call
+	// graph (which in deck is incidentally also the control flow graph) and then
+	// doing a topological sort to find the order in which the functions need to be
+	// defined. Once we have the order we need, we can try iterating the AST and
+	// shifting functions up to some cursor that we advance as we move along the
+	// topologically sorted function list.
+
+	// Stack effect checking pass to discover how many inputs and outputs functions
+	// have. We can build up from primitives and then store the effects of user defined
+	// functions and eventually have a stack effect for every function.
+
+		// First build a call graph by iterating every function
+		// and seeing which functions are called by it.
+		// Add std::unordered_map<View, std::unordered_set<View>> member
+		// to Context.
+		// Next we have to a DFS on this callgraph to generate an ordering
+		// for the functions. This is a topological sort.
+		// Once we have the ordering we want we can iterate through the
+		// instructions and perform what is basically a sort by swapping
+		// functions if the ordering is mismatched relative to eachother.
 }
 
 #endif

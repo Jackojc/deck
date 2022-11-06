@@ -15,6 +15,15 @@
 
 #include "cdc.hpp"
 
+#include "passes/quotes.hpp"
+#include "passes/discover.hpp"
+#include "passes/verify.hpp"
+#include "passes/pretty_print.hpp"
+#include "passes/refgraph.hpp"
+#include "passes/ranges.hpp"
+#include "passes/reorder.hpp"
+#include "passes/emit.hpp"
+
 using namespace cdc;
 
 int main(int argc, const char* argv[]) {
@@ -34,11 +43,14 @@ int main(int argc, const char* argv[]) {
 		Context ctx;
 		std::vector<Symbol> instructions = program(lx);
 
-		reduce_quotes(ctx, instructions.begin(), instructions);
-		discover(ctx, instructions.begin(), instructions);
-		verify(ctx, instructions.begin(), instructions);
-		pretty_print(ctx, instructions.begin(), instructions);
-		emit(ctx, instructions.begin(), instructions);
+		quotes(ctx, instructions);
+		discover(ctx, instructions);
+		verify(ctx, instructions);
+		refgraph(ctx, instructions);
+		ranges(ctx, instructions);
+		reorder(ctx, instructions);
+		emit(ctx, instructions);
+		pretty_print(ctx, instructions);
 
 		// for (auto it = instructions.begin(); it != instructions.end(); ++it)
 		// 	std::cout << *it << '\n';
