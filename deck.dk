@@ -1,83 +1,69 @@
-#! `... :: foo` syntax for functions
-
-#! remove special function label that pushes pops address, just do it manually
-
 #! implement some kind of loop function which checks the top of stack value
 #! before jumping to address
 #! @loop pushes here to deque @until jumps back to value on deque while tos is 0
 
-#! 5 fact int sys_ok
 
-42 [ [ 4 5 6 v* ] 1 2 3 v+ ] dbg sys_ok
+#! 3 3 3 +v io_intlnk
+#! dbg
 
-@v+ &+ swp &reduce .
-@v* &* swp &reduce .
+#! 10 sys_mmap
+#! dup 69 swp mset
+#! dup 8 + 420 swp mset
+#! dup mget
+#! swp dup 8 + mget swp
+#! 10 sys_unmap
 
-#! @fact >| 1 swp iota v* ret
-#! @iota >| &.dup++ swp -- times ret
-#! @.dup++ >| dup ++ ret
+1 2 3 4 5
+10 create
+dbg
+#! # io_intln
+#! msetv
+#! delete
+
+sys_ok
+
+@msetv >| #! ( ... ptr cont -> )
+	&mset++ times
+ret
+
+@mset++ >| tuck mset ptr++ ret #! ( x addr cont -> addr )
+
+@create >| #! ( size -> ptr )
+#! Allocate some memory and store the size before
+#! the allocated chunk so we can use later when
+#! freeing the memory. This absolves the user
+#! from having to store the size.
+	++ cell * dup sys_mmap tuck mset ptr++
+ret
+
+@delete >| #! ( ptr -> )
+#! Free some memory that was previously allocated
+#! with `create`. We pull out the size of the block
+#! first and then pass both the size and pointer to
+#! the unmap call.
+	dup mget ptr-- sys_unmap
+ret
 
 
-#! @times
-#! 	>| swp >| >|
-#! @.loop
-#! 	dcpy &.end ifz
-#! 	|> -- >|
-#! 	dswp dcpy dswp call
-#! 	&.loop .
-#! @.end dpop dpop ret
+#! @vrotl
+#! @vrotl >|
+	#! retrieve the leftmost element and store it on the deq.
+	#! next we loop and set every left element equal to its right element's value.
+	#! lastly we pop the value we stored earlier from the deque.
+#! ret
 
-
-#! 1 2 3
-#! 1 5 iota vadd dbg
-
-#! #! &++ map
-#! #! &-- map
-#! #! 5 fac int
-
-
-#! #! stack
-#! #! @qrotl >| >| rotl |> swp dgo #! ( a b c d -> b c d a )
-#! #! @qrotr >| >| rotl |> swp dgo #! ( a b c d ->  )
-#! #! instead of the above, implement versions of rot that operate
-#! #! on the _entire stack_
-#! #! @vrotl
-#! #! @vrotl >|
-#! 	#! retrieve the leftmost element and store it on the deq.
-#! 	#! next we loop and set every left element equal to its right element's value.
-#! 	#! lastly we pop the value we stored earlier from the deque.
-#! #! ret
-
-
-#! @vadd &+ swp &reduce .
-#! @vsub &- swp &reduce .
-#! @vmul &* swp &reduce .
-#! @vdiv &/ swp &reduce .
-
-#! @fact >| 1 swp iota vmul ret
 #! @fact2 >| dup 1 = &.end if dup -- fact2 * @.end ret
-
-#! @sqr >| dup * ret
-
+#! @fact >| 1 swp iota v* ret
 #! @kdbg >| &kint map ret
 
-#! #! aliases
-@int &io_intln .
-@hex &io_hexln .
 
-#! #! wrappers
-#! #! ( a b -> a a b )
-@kint over rotr &io_intln . #! ( x cont -> x )
-@khex over rotr &io_hexln . #! ( x cont -> x )
+#! here
+#! 	0 swp 0 # io_hexln swp .
 
+#! 0 here swp
+#! 	dup &io_intln ++
+#! 	dup 10 <=
+#! 	2 get f ? .
+#! @f
 
-#! #! here
-#! #! 	0 swp 0 # io_hexln swp .
-
-#! #! 0 here swp
-#! #! 	dup &io_intln ++
-#! #! 	dup 10 <=
-#! #! 	2 get f ? .
-#! #! @f
-
-#! #! 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .
+#! 0 0 @loop ++ dup dup &io_hexln 5 < loop sys_exit ? .
