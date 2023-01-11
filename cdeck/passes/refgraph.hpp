@@ -43,6 +43,7 @@ namespace cdc {
 
 			case SymbolKind::FN: {
 				// We pass down the new parent here using `current->sv`.
+				ctx.refs.try_emplace(current->sv, std::unordered_set<View>{}); // We want to include leaf functions in the graph.
 				it = visit_block(ctx, it, instructions, refgraph_visit, current->sv);
 			} break;
 

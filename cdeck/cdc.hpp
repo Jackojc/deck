@@ -776,11 +776,14 @@ namespace cdc {
 	// Semantic analysis passes.
 	struct Context {
 		std::unordered_map<View, SymbolKind> symbols;
+
 		std::unordered_map<View, std::unordered_set<View>> refs;
+
 		std::unordered_map<View, std::pair<
 			std::vector<Symbol>::iterator,
 			std::vector<Symbol>::iterator
 		>> ranges;
+
 		std::list<std::string> intern;
 		size_t intern_id = 0;
 	};
@@ -801,28 +804,6 @@ namespace cdc {
 
 		return it + 1;
 	}
-
-	// Introduce a pass to re-order function definitions so that the definition
-	// always appears before any calls. We can do this by first generating a call
-	// graph (which in deck is incidentally also the control flow graph) and then
-	// doing a topological sort to find the order in which the functions need to be
-	// defined. Once we have the order we need, we can try iterating the AST and
-	// shifting functions up to some cursor that we advance as we move along the
-	// topologically sorted function list.
-
-	// Stack effect checking pass to discover how many inputs and outputs functions
-	// have. We can build up from primitives and then store the effects of user defined
-	// functions and eventually have a stack effect for every function.
-
-		// First build a call graph by iterating every function
-		// and seeing which functions are called by it.
-		// Add std::unordered_map<View, std::unordered_set<View>> member
-		// to Context.
-		// Next we have to a DFS on this callgraph to generate an ordering
-		// for the functions. This is a topological sort.
-		// Once we have the ordering we want we can iterate through the
-		// instructions and perform what is basically a sort by swapping
-		// functions if the ordering is mismatched relative to eachother.
 }
 
 #endif

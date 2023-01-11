@@ -12,27 +12,6 @@
 */
 
 namespace cdc {
-	// void dfs(
-	// 	std::unordered_map<View, std::unordered_set<View>>& graph,
-	// 	View parent,
-	// 	std::vector<View>& order,
-	// 	std::unordered_set<View>& seen
-	// ) {
-	// 	if (auto it = graph.find(parent); it != graph.end()) {
-	// 		for (View child: it->second) {
-	// 			if (parent == child)
-	// 				continue;
-
-	// 			dfs(graph, child, order, seen);
-
-	// 			if (seen.find(child) == seen.end())
-	// 				order.emplace_back(child);
-
-	// 			seen.emplace(child);
-	// 		}
-	// 	}
-	// }
-
 	inline std::vector<Symbol>::iterator reorder_visit(
 		Context& ctx,
 		std::vector<Symbol>::iterator it,
@@ -103,31 +82,6 @@ namespace cdc {
 		instructions = new_instructions;
 		return it;
 	}
-
-	// inline std::vector<Symbol>::iterator reorder(
-	// 	Context& ctx, std::vector<Symbol>& instructions
-	// ) {
-	// 	std::vector<View> order;
-	// 	std::unordered_set<View> seen;
-
-	// 	std::vector<Symbol> new_instructions;
-
-	// 	for (auto& [parent, set]: ctx.refs) {
-	// 		dfs(ctx.refs, parent, order, seen);
-
-	// 		if (seen.find(parent) == seen.end())
-	// 			order.emplace_back(parent);
-
-	// 		seen.emplace(parent);
-	// 	}
-
-	// 	for (View fn: order) {
-	// 		if (auto it = ctx.ranges.find(fn); it != ctx.ranges.end()) {
-	// 			auto [begin, end] = it->second;
-	// 			new_instructions.insert(new_instructions.end(), begin, end);
-	// 		}
-	// 	}
-	// }
 }
 
 #endif
