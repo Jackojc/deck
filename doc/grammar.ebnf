@@ -12,3 +12,18 @@ instruction ::=
 
 function ::= <instruction>* '::' <identifier>
 program ::= ( <function> | <instruction> )*
+
+
+
+comment = ? #!.*$ ?
+identifier = ? {XID_Start}{XID_Continue}* ?
+number = ? [0-9]+ ? | ? 0x[0-9A-Fa-f]{2} ?
+string = ?  ?
+
+program = expr*
+expr = '[' expr* ']' | '{' expr* '}' | let | identifier | ops
+
+ops = 
+	'+' | '-' | '*' | '/' | '%' | 
+	'pop' | 'get' | 'set'
+let = expr '::' identifer

@@ -99,6 +99,7 @@ This will spit out a compiled ELF64 binary with the name `bin` in the
 local directory.
 
 ### Resources
+##### Code Generation
 - https://blog.rchapman.org/posts/Linux_System_Call_Table_for_x86_64/
 - https://www.nasm.us/xdoc/2.13.03/html/nasmdoc0.html
 - https://www.felixcloutier.com/x86/
@@ -107,6 +108,15 @@ local directory.
 - https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.156.2546&rep=rep1&type=pdf
 - https://bernsteinbear.com/assets/img/46b-codegeneration-in-V8.pdf
 - https://www.microsoft.com/en-us/research/wp-content/uploads/2016/11/dps-fhpc17.pdf
+- https://www.golfscript.com/golfscript/builtin.html
+
+##### Unicode
+- https://lexy.foonathan.net/reference/dsl/unicode/
+- https://github.com/foonathan/lexy/blob/5928c5644eec6ddf308a3b3df93259bf44dc9eb1/include/lexy/code_point.hpp
+- https://here-be-braces.com/fast-lookup-of-unicode-properties/
+- https://gitlab.com/be-sc/unicode_algorithm/-/blob/master/tools/generate_lookup_tables.py
+- https://www.strchr.com/multi-stage_tables
+
 
 ### License
 This project uses the GPL-3.0 license. (check [LICENSE](LICENSE))
