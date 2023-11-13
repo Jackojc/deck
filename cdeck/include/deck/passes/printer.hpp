@@ -4,6 +4,7 @@
 /*
 	This pass pretty-prints the AST with a nested structure.
 */
+
 #include <cstddef>
 #include <cstdint>
 
@@ -64,7 +65,7 @@ namespace deck::passes {
 		}
 	}
 
-	inline decltype(auto) printer(Tree&& tree) {
+	inline Tree printer(Tree&& tree) {
 		DECK_LOG(Priority::Okay);
 
 		pass(printer_impl, tree, 0ul);

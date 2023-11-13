@@ -4,6 +4,7 @@
 /*
 	Emit x86-64 assembly
 */
+
 #include <cstddef>
 #include <cstdint>
 
@@ -56,6 +57,31 @@ namespace deck::passes {
 			println(std::cout, "mov rax, rdx");
 		}
 
+		// Choice
+		else if (str == "?"sv) {
+			// False value is in rax.
+			println(std::cout, "pop rbx");  // True value
+			println(std::cout, "pop rcx");  // Condition value
+			println(std::cout, "cmp rcx, 1");
+			println(std::cout, "cmove rax, rbx");
+		}
+
+		else if (str == "."sv) {
+			println(std::cout, "mov rbx, rax");
+			println(std::cout, "pop rax");
+			println(std::cout, "jmp rbx");
+		}
+
+		// Stack manipulation
+		else if (str == "pop"sv) {
+			println(std::cout, "pop rax");
+		}
+
+		else if (str == "dup"sv) {
+			println(std::cout, "push rax");
+		}
+
+		// Just call the function if it exists and isn't a primitive.
 		else {
 			println(std::cout, "call ", str);
 		}
@@ -145,7 +171,7 @@ namespace deck::passes {
 		}
 	}
 
-	inline decltype(auto) x86_64(Tree&& tree) {
+	inline Tree x86_64(Tree&& tree) {
 		DECK_LOG(Priority::Okay);
 
 		detail::X86Env env;

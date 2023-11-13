@@ -30,8 +30,9 @@ int main(int, const char*[]) {
 		Tree tree;
 
 		tree = parse(std::move(src));
-		tree = passes::x86_64(std::move(tree));
+
 		tree = passes::printer(std::move(tree));
+		tree = passes::x86_64(std::move(tree));
 	}
 
 	catch (const Exception& e) {
