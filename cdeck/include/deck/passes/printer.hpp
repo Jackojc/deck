@@ -36,8 +36,9 @@ namespace deck::passes {
 			case SymbolKind::String:  // Cases with associated string.
 			case SymbolKind::Character:
 			case SymbolKind::Integer:
+			case SymbolKind::Identifier:
 
-			case SymbolKind::Word:
+			case SymbolKind::Declare:
 			case SymbolKind::Label:
 			case SymbolKind::Address: {
 				detail::indent(std::cerr, spaces);
@@ -61,7 +62,11 @@ namespace deck::passes {
 				println(std::cerr, colour, "End", DECK_RESET);
 			} break;
 
-			default: break;
+			case SymbolKind::End: break;
+
+			default: {
+				DECK_LOG(Priority::Warn, "unhandled symbol: `", kind, "`");
+			} break;
 		}
 	}
 
@@ -69,7 +74,7 @@ namespace deck::passes {
 		DECK_LOG(Priority::Okay);
 
 		pass(printer_impl, tree, 0ul);
-		return std::move(tree);
+		return tree;
 	}
 }  // namespace deck::passes
 

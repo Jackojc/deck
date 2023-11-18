@@ -12,6 +12,7 @@
 
 #include <deck/deck.hpp>
 
+#include <deck/passes/dumper.hpp>
 #include <deck/passes/printer.hpp>
 #include <deck/passes/x86-64.hpp>
 
@@ -31,6 +32,7 @@ int main(int, const char*[]) {
 
 		tree = parse(std::move(src));
 
+		tree = passes::dumper(std::move(tree));
 		tree = passes::printer(std::move(tree));
 		tree = passes::x86_64(std::move(tree));
 	}

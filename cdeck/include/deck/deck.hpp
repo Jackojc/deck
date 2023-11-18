@@ -161,19 +161,12 @@ namespace deck {
 	// Exceptions
 	class Exception: public std::runtime_error {
 		using runtime_error::runtime_error;
-
-		std::string msg;
-
-		public:
-		const char* what() const noexcept override {
-			return msg.c_str();
-		}
 	};
 
 	template <typename... Ts>
 	[[noreturn]] inline void fatal(Ts&&... args) {
 		std::ostringstream ss;
-		println(ss, detail::log_to_str(Priority::Fail), " ", std::forward<Ts>(args)..., DECK_RESET);
+		print(ss, detail::log_to_str(Priority::Fail), " ", std::forward<Ts>(args)..., DECK_RESET);
 		throw Exception { ss.str() };
 	}
 
@@ -245,13 +238,15 @@ namespace deck {
 	X(None, "None") \
 	X(Terminator, "Terminator") \
 \
+	X(Intrinsic, "Intrinsic") \
 	X(Declare, "Declare") \
 	X(Address, "Address") \
-	X(Word, "Word") \
+	X(Label, "Label") \
+\
+	X(Identifier, "Identifier") \
 	X(Integer, "Integer") \
 	X(String, "String") \
 	X(Character, "Character") \
-	X(Label, "Label") \
 \
 	X(Frame, "Stack Frame") \
 	X(FrameEnd, "Stack Frame End") \
@@ -319,7 +314,7 @@ namespace deck {
 			}
 
 			const char* begin = ptr;
-			const char* end = begin + 1;
+			size_t length = 0;
 
 			SymbolKind kind = SymbolKind::None;
 
@@ -347,40 +342,31 @@ namespace deck {
 				++ptr;
 			}
 
-			else if (*ptr == '@') {
-				kind = SymbolKind::Label;
-
+			else if (*ptr == '$') {
+				kind = SymbolKind::Intrinsic;
 				begin = ++ptr;
 
 				while (is_visible(ptr)) {
 					++ptr;
 				}
-
-				end = ptr;
 			}
 
 			else if (*ptr == '&') {
 				kind = SymbolKind::Address;
-
 				begin = ++ptr;
 
 				while (is_visible(ptr)) {
 					++ptr;
 				}
-
-				end = ptr;
 			}
 
 			else if (*ptr == '"') {
 				kind = SymbolKind::String;
-
 				begin = ++ptr;
 
 				while (*ptr != '"') {
 					++ptr;
 				}
-
-				end = ptr++;
 			}
 
 			else if (is_digit(ptr)) {
@@ -389,12 +375,10 @@ namespace deck {
 				while (is_digit(ptr)) {
 					++ptr;
 				}
-
-				end = ptr;
 			}
 
 			else if (is_visible(ptr)) {  // Identifiers.
-				kind = SymbolKind::Word;
+				kind = SymbolKind::Identifier;
 
 				if (*ptr == '#') {
 					++ptr;
@@ -413,16 +397,34 @@ namespace deck {
 				while (is_visible(ptr)) {
 					++ptr;
 				}
-
-				end = ptr;
 			}
 
 			else {
 				fatal("unknown character");
 			}
 
-			Symbol sym { { begin, static_cast<size_t>(end - begin) }, kind };
+			length = ptr - begin;
+
+			Symbol sym { { begin, length }, kind };
 			Symbol out = peek;
+
+			if (sym.kind == SymbolKind::Intrinsic) {
+				if (sym.str == "decl") {
+					sym.kind = SymbolKind::Declare;
+				}
+
+				else if (sym.str == "def") {
+					sym.kind = SymbolKind::Label;
+				}
+
+				else if (sym.str == "addr") {
+					sym.kind = SymbolKind::Address;
+				}
+
+				else {
+					fatal("unknown intrinsic");
+				}
+			}
 
 			peek = sym;
 
@@ -448,13 +450,20 @@ namespace deck {
 namespace deck {
 	using Tree = std::vector<Symbol>;
 
+	inline bool is_intrinsic(Symbol x) {
+		return eq_any(x.kind, SymbolKind::Declare, SymbolKind::Label, SymbolKind::Address);
+	}
+
 	inline void expression(std::vector<Symbol>&, Lexer&);
 	inline void frame(std::vector<Symbol>&, Lexer&);
 	inline void quote(std::vector<Symbol>&, Lexer&);
+	inline void intrinsic(std::vector<Symbol>&, Lexer&);
 
 	[[nodiscard]] inline std::vector<Symbol> parse(std::string&&);
 
 	inline void frame(std::vector<Symbol>& prog, Lexer& lx) {
+		DECK_LOG(Priority::Okay);
+
 		expect(lx, is(SymbolKind::Frame), "expected `[`");
 		Symbol frame_begin = lx.take();
 
@@ -471,6 +480,8 @@ namespace deck {
 	}
 
 	inline void quote(std::vector<Symbol>& prog, Lexer& lx) {
+		DECK_LOG(Priority::Okay);
+
 		expect(lx, is(SymbolKind::Quote), "expected `{`");
 		Symbol quote_begin = lx.take();
 
@@ -486,10 +497,30 @@ namespace deck {
 		prog.emplace_back(quote_end.str, SymbolKind::End);
 	}
 
+	inline void intrinsic(std::vector<Symbol>& prog, Lexer& lx) {
+		DECK_LOG(Priority::Okay);
+
+		expect(lx, is_intrinsic, "expected an intrinsic");
+		Symbol intrinsic = lx.take();
+
+		expect(lx, is(SymbolKind::Identifier), "expected an identifer");
+		Symbol ident = lx.take();
+
+		prog.emplace_back(ident.str, intrinsic.kind);
+	}
+
 	inline void expression(std::vector<Symbol>& prog, Lexer& lx) {
+		DECK_LOG(Priority::Okay);
+
 		switch (lx.peek.kind) {
 			case SymbolKind::Frame: frame(prog, lx); break;
 			case SymbolKind::Quote: quote(prog, lx); break;
+
+			case SymbolKind::Declare:
+			case SymbolKind::Label:
+			case SymbolKind::Address: {
+				intrinsic(prog, lx);
+			} break;
 
 			default: {
 				prog.push_back(lx.take());
@@ -498,6 +529,8 @@ namespace deck {
 	}
 
 	[[nodiscard]] inline std::vector<Symbol> parse(std::string&& src) {
+		DECK_LOG(Priority::Okay);
+
 		Lexer lx { std::move(src) };
 		std::vector<Symbol> prog;
 
