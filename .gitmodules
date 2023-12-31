@@ -1,0 +1,3 @@
+[submodule "cdeck/deps/fmt"]
+	path = cdeck/deps/fmt
+	url = https://github.com/fmtlib/fmt

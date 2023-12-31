@@ -16,6 +16,8 @@
 #include <string_view>
 #include <string>
 
+#include <fmt/core.h>
+
 #include <deck/deck.hpp>
 
 namespace deck::passes {
@@ -26,6 +28,12 @@ namespace deck::passes {
 
 			X86Env(): symbol_table { "+", "-", "*", "/", "%", "?", ".", "pop", "dup", "#", "clear" }, id { 0 } {}
 		};
+
+	}  // namespace detail
+
+	template <typename... Ts>
+	inline decltype(auto) emit(Ts&&... args) {
+		println(std::cout, std::forward<Ts>(args)...);
 	}
 
 	inline void x86_64_primitive(std::string_view str, detail::X86Env& env) {
@@ -33,69 +41,74 @@ namespace deck::passes {
 
 		// Arithmetic
 		if (str == "+"sv) {
-			println(std::cout, "  pop rbx");
-			println(std::cout, "  add rax, rbx");
+			emit("  pop rbx");
+			emit("  add rax, rbx");
 		}
 
 		else if (str == "-"sv) {
-			println(std::cout, "  pop rbx");
-			println(std::cout, "  sub rax, rbx");
+			emit("  pop rbx");
+			emit("  sub rax, rbx");
 		}
 
 		else if (str == "*"sv) {
-			println(std::cout, "  pop rbx");
-			println(std::cout, "  imul rax, rbx");
+			emit("  pop rbx");
+			emit("  imul rax, rbx");
 		}
 
 		else if (str == "/"sv) {
-			println(std::cout, "  pop rbx");
-			println(std::cout, "  div rbx");
+			emit("  pop rbx");
+			emit("  div rbx");
 		}
 
 		else if (str == "%"sv) {
-			println(std::cout, "  pop rbx");
-			println(std::cout, "  div rbx");
-			println(std::cout, "  mov rax, rdx");
+			emit("  pop rbx");
+			emit("  div rbx");
+			emit("  mov rax, rdx");
 		}
 
 		// Choice
 		else if (str == "?"sv) {
 			// False value is in rax.
-			println(std::cout, "  pop rbx");  // True value
-			println(std::cout, "  pop rcx");  // Condition value
-			println(std::cout, "  cmp rcx, 1");
-			println(std::cout, "  cmove rax, rbx");
+			emit("  pop rbx");  // True value
+			emit("  pop rcx");  // Condition value
+			emit("  cmp rcx, 1");
+			emit("  cmove rax, rbx");
 		}
 
 		else if (str == "."sv) {
-			println(std::cout, "  mov rbx, rax");
-			println(std::cout, "  pop rax");
-			println(std::cout, "  jmp rbx");
+			emit("  mov rbx, rax");
+			emit("  pop rax");
+			emit("  jmp rbx");
 		}
 
 		// Stack manipulation
 		else if (str == "pop"sv) {
-			println(std::cout, "  pop rax");
+			emit("  pop rax");
 		}
 
 		else if (str == "dup"sv) {
-			println(std::cout, "  push rax");
+			emit("  push rax");
 		}
 
 		else if (str == "#"sv) {
-			println(std::cout, "  push rax");
-			println(std::cout, "  mov rax, rbp");
-			println(std::cout, "  sub rbx, rsp");
-			println(std::cout, "  shr rax, 3");  // div 8
+			emit("  push rax");
+			emit("  mov rax, rbp");
+			emit("  sub rbx, rsp");
+			emit("  shr rax, 3");  // div 8
 		}
 
 		else if (str == "clear"sv) {
-			println(std::cout, "  mov rsp, rbp");
+			emit("  mov rsp, rbp");
 		}
 
 		// Just call the function if it exists and isn't a primitive.
 		else {
-			println(std::cout, "  call ", str);
+			size_t return_addr_id = env.id++;
+
+			emit("  push rax");
+			emit("  mov rax, __return_addr_", return_addr_id);
+			emit("  jmp ", str);
+			emit("__return_addr_", return_addr_id, ":");
 		}
 	}
 
@@ -110,10 +123,10 @@ namespace deck::passes {
 				// will push garbage to the stack so we want to start 1 word
 				// below the true starting point.
 
-				println(std::cout, "section .text");
-				println(std::cout, "global _start");
-				println(std::cout, "_start:");
-				println(std::cout, "  mov rax, 0");
+				emit("section .text");
+				emit("global _start");
+				emit("_start:");
+				emit("  mov rax, 0");
 			} break;
 
 			case SymbolKind::Footer: {
@@ -126,8 +139,8 @@ namespace deck::passes {
 			} break;
 
 			case SymbolKind::Integer: {
-				println(std::cout, "  push rax");
-				println(std::cout, "  mov rax, ", str);
+				emit("  push rax");
+				emit("  mov rax, ", str);
 			} break;
 
 			// Function call
@@ -154,7 +167,7 @@ namespace deck::passes {
 					fatal("`", str, "` is declared already");
 				}
 
-				println(std::cout, str, ":");
+				emit(str, ":");
 			} break;
 
 			case SymbolKind::Address: {
@@ -166,35 +179,35 @@ namespace deck::passes {
 					fatal("`", str, "` is not defined");
 				}
 
-				println(std::cout, "  push rax");
-				println(std::cout, "  mov rax, ", str);
+				emit("  push rax");
+				emit("  mov rax, ", str);
 			} break;
 
 			// Anonymous function
 			case SymbolKind::Quote: {
 				size_t quote_id = env.id++;
 
-				println(std::cout, "  jmp __quote_end_", quote_id);
-				println(std::cout, "__quote_", quote_id, ":");
+				emit("  jmp __quote_end_", quote_id);
+				emit("__quote_", quote_id, ":");
 
 				it = visit_block(x86_64_impl, tree, it, env);
 
-				println(std::cout, "__quote_end_", quote_id, ":");
+				emit("__quote_end_", quote_id, ":");
 
-				println(std::cout, "  push rax");
-				println(std::cout, "  mov rax, __quote_", quote_id);
+				emit("  push rax");
+				emit("  mov rax, __quote_", quote_id);
 			} break;
 
 			// Stack frames
 			case SymbolKind::Frame: {
-				println(std::cout, "  push rax");
-				println(std::cout, "  mov rax, rbp");
-				println(std::cout, "  mov rbp, rsp");
+				emit("  push rax");
+				emit("  mov rax, rbp");
+				emit("  mov rbp, rsp");
 
 				it = visit_block(x86_64_impl, tree, it, env);
 
-				println(std::cout, "  mov rbp, rax");
-				println(std::cout, "  pop rax");
+				emit("  mov rbp, rax");
+				emit("  pop rax");
 			} break;
 
 			case SymbolKind::End: break;
