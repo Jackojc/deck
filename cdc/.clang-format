@@ -1,0 +1,9 @@
+﻿---
+BasedOnStyle: Google
+BinPackArguments: 'false'
+ColumnLimit: '100'
+IndentWidth: '4'
+TabWidth: '4'
+UseTab: Never
+AllowShortFunctionsOnASingleLine: None
+...
