@@ -49,7 +49,7 @@ typedef struct {
 } lexer_t;
 
 typedef enum {
-	TOK_WS = 256,
+	TOK_WS,
 	TOK_COMMENT,
 	TOK_EOF,
 
@@ -61,6 +61,14 @@ typedef enum {
 	TOK_KW_INT,
 	TOK_KW_DEF,
 	TOK_KW_LET,
+
+	TOK_ARROW,
+	TOK_ADD,
+	TOK_SUB,
+	TOK_MUL,
+	TOK_DIV,
+	TOK_LPAREN,
+	TOK_RPAREN,
 
 	TOK_NONE,
 } token_kind_t;
@@ -82,20 +90,19 @@ const char* tok_to_str[] = {
 	[TOK_KW_DEF] = "KW_DEF",
 	[TOK_KW_LET] = "KW_LET",
 	[TOK_NONE] = "NONE",
+	[TOK_ARROW] = "ARROW",
+	[TOK_ADD] = "ADD",
+	[TOK_SUB] = "SUB",
+	[TOK_MUL] = "MUL",
+	[TOK_DIV] = "DIV",
+	[TOK_LPAREN] = "LPAREN",
+	[TOK_RPAREN] = "RPAREN",
+
 };
-
-lexer_t lexer_create(const char* src, size_t len) {
-	lexer_t lx;
-
-	lx.src = src;
-	lx.ptr = 0;
-	lx.len = len;
-
-	return lx;
-}
 
 typedef bool (*ccond_t)(char);
 
+// peek at next char in stream
 static char peek(lexer_t* lx) {
 	if (lx->ptr >= lx->len) {
 		return '\0';
@@ -103,6 +110,7 @@ static char peek(lexer_t* lx) {
 	return lx->src[lx->ptr];
 }
 
+// consume next char in stream
 static bool take(lexer_t* lx) {
 	if (lx->ptr >= lx->len) {
 		return '\0';
@@ -110,11 +118,13 @@ static bool take(lexer_t* lx) {
 	return lx->src[lx->ptr++];
 }
 
+// consume next char in stream if matches cond
 static bool take_if(lexer_t* lx, ccond_t cond) {
 	char c = peek(lx);
 	return cond(c) && take(lx);
 }
 
+// consume next chars in stream if it matches str
 static bool take_str(lexer_t* lx, const char* str) {
 	size_t len = strlen(str);
 
@@ -126,6 +136,7 @@ static bool take_str(lexer_t* lx, const char* str) {
 	return false;
 }
 
+// consume chars from stream while cond holds true
 static bool take_while(lexer_t* lx, ccond_t cond) {
 	bool taken = false;
 	while (take_if(lx, cond)) {
@@ -134,10 +145,12 @@ static bool take_while(lexer_t* lx, ccond_t cond) {
 	return taken;
 }
 
+// compare 2 strings, ensuring lengths match
 static bool kw_cmp(const char* src, size_t len, const char* kw) {
 	return len == strlen(kw) && strncmp(src, kw, len) == 0;
 }
 
+// consume next character if it is equal to exp
 static bool take_if_eq(lexer_t* lx, char exp) {
 	char c = peek(lx);
 	return c == exp && take(lx);
@@ -145,36 +158,38 @@ static bool take_if_eq(lexer_t* lx, char exp) {
 
 /*
 lexer:
-	lexer_peek
-	lexer_next
-		next_ident
-		next_int
-		next_ws
-		next_punct
-		next_comment
-	lexer_peek_expect      |
-	lexer_next_expect      |> takes fn pointer, failure string
+		lexer_peek
+		lexer_next
+				next_ident
+				next_int
+				next_ws
+				next_punct
+				next_comment
+		lexer_peek_expect      |
+		lexer_next_expect      |> takes fn pointer, failure string
 
 parser:
-	type assertions:
-		$(int int)
-	swizzling:
-		( a b c -> b b c )
-	type checking:
-		tracks function start/end
+		type assertions:
+				$(int int)
+		swizzling:
+				( a b c -> b b c )
+		type checking:
+				tracks function start/end
 
 ir:
-	swizzle:
-		( a b c -> b b c )
-		becomes
-		b_idx b_idx c_idx n_swiz n_pop SWIZZLE
-		1 1 2 3 3 SWIZZLE
-	functions:
-		functions point to a control flow graph
-		graph of unconditional jumps
+		swizzle:
+				( a b c -> b b c )
+				becomes
+				b_idx b_idx c_idx n_swiz n_pop SWIZZLE
+				1 1 2 3 3 SWIZZLE
+		functions:
+				functions point to a control flow graph
+				graph of unconditional jumps
 
-		// map to "block" (linked list of instructions) of IR instructions
-		// blocks point to previous and next siblings (call destinations)
+				// map to "block" (linked list of instructions) of IR
+instructions
+				// blocks point to previous and next siblings (call
+destinations)
 
 */
 
@@ -273,6 +288,50 @@ static bool produce_while(lexer_t* lx, token_t* tok, ccond_t cond, token_kind_t 
 	return res;
 }
 
+static bool produce_int(lexer_t* lx, token_t* tok) {
+	return produce_while(lx, tok, is_digit, TOK_INT);
+}
+
+static bool produce_sigil(lexer_t* lx, token_t* tok) {
+	tok->start = lx->ptr;
+
+	if (take_str(lx, "->")) {
+		tok->kind = TOK_ARROW;
+	}
+	else if (take_str(lx, "+")) {
+		tok->kind = TOK_ADD;
+	}
+	else if (take_str(lx, "-")) {
+		tok->kind = TOK_SUB;
+	}
+	else if (take_str(lx, "*")) {
+		tok->kind = TOK_MUL;
+	}
+	else if (take_str(lx, "/")) {
+		tok->kind = TOK_DIV;
+	}
+	else if (take_str(lx, "(")) {
+		tok->kind = TOK_LPAREN;
+	}
+	else if (take_str(lx, ")")) {
+		tok->kind = TOK_RPAREN;
+	}
+
+	tok->end = lx->ptr;
+
+	return true;
+}
+
+lexer_t lexer_create(const char* src, size_t len) {
+	lexer_t lx;
+
+	lx.src = src;
+	lx.ptr = 0;
+	lx.len = len;
+
+	return lx;
+}
+
 bool lexer_next(lexer_t* lx, token_t* tok) {
 	tok->start = lx->ptr;
 	tok->end = 0;
@@ -280,6 +339,7 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 
 	char c = peek(lx);
 
+	// if eof, return EOF token early
 	if (!c) {
 		tok->kind = TOK_EOF;
 		tok->start = lx->ptr;
@@ -287,20 +347,25 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 		return true;
 	}
 
+	// skip whitespace and comments
 	while (take_while(lx, is_ws) || take_str(lx, "#!")) {
 		if (take_str(lx, "#!")) {
 			take_while(lx, is_not_nl);
 		}
 	}
 
+	// produce tokens
 	if (produce_ident(lx, tok)) {
 		printf("lexer: ident\n");
 	}
 	else if (produce_symbol(lx, tok)) {
 		printf("lexer: symbol\n");
 	}
-	else if (produce_while(lx, tok, is_digit, TOK_INT)) {
+	else if (produce_int(lx, tok)) {
 		printf("lexer: int\n");
+	}
+	else if (produce_sigil(lx, tok)) {
+		printf("lexer: sigil\n");
 	}
 	else {
 		return false;
@@ -310,7 +375,7 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 }
 
 int main(void) {
-	const char* src = "     #! foo bar baz\nint let def foobar 123 #abc";
+	const char* src = "-> + - * / ( )";
 	size_t len = strlen(src);
 	lexer_t lx = lexer_create(src, len);
 
