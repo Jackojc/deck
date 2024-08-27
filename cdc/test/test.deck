@@ -1,0 +1,14 @@
+#! ints
+0 123 456
+
+#! string lits
+"Hello, \"World\"!"
+
+#! punctuation
++ $ # + - * / -> ( )
+
+#! keywords
+int def
+
+#! identifier
+abc_def123
