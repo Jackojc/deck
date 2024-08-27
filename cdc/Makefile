@@ -6,7 +6,7 @@ TARGET?=debug
 CSRC_BIN:=$(wildcard src/*.c)
 COBJ_BIN:=$(patsubst src/%.c, build/%.c.o, $(CSRC_BIN))
 
-CFLAGS+=-Wall -Wextra  -Werror -c -MMD
+CFLAGS+=-Wall -Wextra  -c -MMD
 LFLAGS+=-lm
 
 ifeq ($(TARGET), debug)

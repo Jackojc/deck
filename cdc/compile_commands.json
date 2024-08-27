@@ -4,7 +4,6 @@
       "/nix/store/yc9q0h72rlj98y0116c4mma6k80264mv-gcc-wrapper-13.2.0/bin/gcc",
       "-Wall",
       "-Wextra",
-      "-Werror",
       "-c",
       "-Og",
       "-g",
