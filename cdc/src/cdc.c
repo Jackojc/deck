@@ -75,17 +75,16 @@ typedef enum {
 #undef X
 } token_kind_t;
 
-typedef struct {
-	token_kind_t kind;
-	size_t start, end;
-} token_t;
-
-// TODO: X-macro
 const char* tok_to_str[] = {
 #define X(name) [TOK_##name] = #name,
 	TOKENS
 #undef x
 };
+
+typedef struct {
+	token_kind_t kind;
+	size_t start, end;
+} token_t;
 
 typedef bool (*ccond_t)(char);
 
