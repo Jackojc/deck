@@ -48,29 +48,31 @@ typedef struct {
 	size_t ptr, len;
 } lexer_t;
 
+#define TOKENS \
+	X(WS) \
+	X(COMMENT) \
+	X(EOF) \
+	X(INT) \
+	X(STR) \
+	X(IDENT) \
+	X(SYMBOL) \
+	X(KW_INT) \
+	X(KW_DEF) \
+	X(KW_LET) \
+	X(ARROW) \
+	X(ADD) \
+	X(SUB) \
+	X(MUL) \
+	X(DIV) \
+	X(LPAREN) \
+	X(RPAREN) \
+	X(COND) \
+	X(NONE)
+
 typedef enum {
-	TOK_WS,
-	TOK_COMMENT,
-	TOK_EOF,
-
-	TOK_INT,
-	TOK_STR,
-	TOK_IDENT,
-	TOK_SYMBOL,
-
-	TOK_KW_INT,
-	TOK_KW_DEF,
-	TOK_KW_LET,
-
-	TOK_ARROW,
-	TOK_ADD,
-	TOK_SUB,
-	TOK_MUL,
-	TOK_DIV,
-	TOK_LPAREN,
-	TOK_RPAREN,
-
-	TOK_NONE,
+#define X(name) TOK_##name,
+	TOKENS
+#undef X
 } token_kind_t;
 
 typedef struct {
@@ -78,26 +80,11 @@ typedef struct {
 	size_t start, end;
 } token_t;
 
+// TODO: X-macro
 const char* tok_to_str[] = {
-	[TOK_WS] = "WS",
-	[TOK_COMMENT] = "COMMENT",
-	[TOK_EOF] = "EOF",
-	[TOK_INT] = "INT",
-	[TOK_STR] = "STR",
-	[TOK_IDENT] = "IDENT",
-	[TOK_SYMBOL] = "SYMBOL",
-	[TOK_KW_INT] = "KW_INT",
-	[TOK_KW_DEF] = "KW_DEF",
-	[TOK_KW_LET] = "KW_LET",
-	[TOK_NONE] = "NONE",
-	[TOK_ARROW] = "ARROW",
-	[TOK_ADD] = "ADD",
-	[TOK_SUB] = "SUB",
-	[TOK_MUL] = "MUL",
-	[TOK_DIV] = "DIV",
-	[TOK_LPAREN] = "LPAREN",
-	[TOK_RPAREN] = "RPAREN",
-
+#define X(name) [TOK_##name] = #name,
+	TOKENS
+#undef x
 };
 
 typedef bool (*ccond_t)(char);
@@ -315,6 +302,9 @@ static bool produce_sigil(lexer_t* lx, token_t* tok) {
 	}
 	else if (take_str(lx, ")")) {
 		tok->kind = TOK_RPAREN;
+	}
+	else if (take_str(lx, "?")) {
+		tok->kind = TOK_COND;
 	}
 
 	tok->end = lx->ptr;
