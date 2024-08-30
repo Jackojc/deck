@@ -3,7 +3,10 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
+#include <libgen.h>
+#include <getopt.h>
 
 typedef int errno_t;
 
@@ -35,6 +38,36 @@ errno_t read_file(const char* path, char** buf_out, size_t* len_out) {
 		errno_t code = errno;
 		free(buf);
 		return code;
+	}
+
+	*buf_out = buf;
+	*len_out = len;
+
+	return 0;
+}
+
+errno_t read_stdin(char** buf_out, size_t* len_out) {
+	size_t cap = 8;
+	size_t len = 0;
+	char* buf = malloc(cap);
+
+	if (!buf) {
+		return errno;
+	}
+
+	while (fread(buf + len++, 1, 1, stdin) == 1) {
+		if (len >= cap) {
+			cap *= 2;
+			buf = realloc(buf, cap);
+
+			if (!buf) {
+				return errno;
+			}
+		}
+	}
+
+	if (ferror(stdin)) {
+		return errno;
 	}
 
 	*buf_out = buf;
@@ -402,15 +435,69 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 	return true;
 }
 
-typedef struct {
-} type_t;
+errno_t jb_basename(const char* path, char* out, size_t size) {
+	memset(out, 0, size);
 
-int main(void) {
+	size_t len = strlen(path);
+
+	char* last = strrchr(path, '/');
+	if (!last) {
+		if (len > size) {
+			return ENAMETOOLONG;
+		}
+
+		memcpy(out, path, len);
+		return 0;
+	}
+
+	len = strlen(last + 1);
+	if (len > size) {
+		return ENAMETOOLONG;
+	}
+
+	// memcpy(out, last + 1, len);
+	strncpy(out, last + 1, size - len);
+
+	return 0;
+}
+
+int main(int argc, char* argv[]) {
+	int opt = 0;
+	char buf[PATH_MAX];
+
+	while ((opt = getopt(argc, argv, "i:")) != -1) {
+		switch (opt) {
+			case 'i': {
+				strncpy(buf, optarg, PATH_MAX - 1);
+				fprintf(stderr, "path: %s\n", buf);
+			} break;
+
+			default: {
+				if (!jb_basename(argv[0], buf, PATH_MAX)) {
+					fprintf(stderr, "usage: %s -i [FILE]\n", buf);
+				}
+				return 1;
+			} break;
+		}
+	}
+
 	char* src;
 	size_t len;
-	errno_t err = read_file("test/test.deck", &src, &len);
-	if (err) {
-		return err;
+	errno_t err;
+
+	if (!buf[0]) {
+		err = read_stdin(&src, &len);
+		if (err) {
+			fprintf(stderr, "error: <stdin>: %s\n", strerror(err));
+			return 1;
+		}
+	}
+	else {
+		err = read_file(buf, &src, &len);
+		if (err) {
+			fprintf(stderr, "error: '%s': %s\n", buf, strerror(err));
+			return 1;
+		}
 	}
 
 	lexer_t lx = lexer_create(src, len);
@@ -419,6 +506,8 @@ int main(void) {
 	while (lexer_next(&lx, &tok) && tok.kind != TOK_EOF) {
 		printf("tok: %s : %d\n", tok_to_str[tok.kind], (int)lx.src[tok.start]);
 	}
+
+	free(src);
 
 	return 0;
 }
