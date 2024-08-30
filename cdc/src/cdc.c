@@ -49,25 +49,38 @@ typedef struct {
 } lexer_t;
 
 #define TOKENS \
+	/* semantic */ \
+	X(NONE) \
 	X(WS) \
 	X(COMMENT) \
 	X(EOF) \
+	/* atoms */ \
 	X(INT) \
 	X(STR) \
 	X(IDENT) \
 	X(SYMBOL) \
+	/* keywords */ \
 	X(KW_INT) \
 	X(KW_DEF) \
 	X(KW_LET) \
+	X(KW_OR) \
+	X(KW_AND) \
+	X(KW_NOT) \
+	/* operators */ \
 	X(ARROW) \
 	X(ADD) \
 	X(SUB) \
 	X(MUL) \
 	X(DIV) \
+	X(COND) \
+	X(APPLY) \
+	X(EQ) \
+	X(TYPE) \
+	/* parenthesis */ \
 	X(LPAREN) \
 	X(RPAREN) \
-	X(COND) \
-	X(NONE)
+	X(LSQUARE) \
+	X(RSQUARE)
 
 typedef enum {
 #define X(name) TOK_##name,
@@ -116,6 +129,16 @@ static bool take_str(lexer_t* lx, const char* str) {
 
 	if (strncmp(lx->src + lx->ptr, str, len) == 0) {
 		lx->ptr += len;
+		return true;
+	}
+
+	return false;
+}
+
+static bool peek_str(lexer_t* lx, const char* str) {
+	size_t len = strlen(str);
+
+	if (strncmp(lx->src + lx->ptr, str, len) == 0) {
 		return true;
 	}
 
@@ -231,6 +254,15 @@ static bool produce_ident(lexer_t* lx, token_t* tok) {
 	else if (kw_cmp(src, len, "def")) {
 		tok->kind = TOK_KW_DEF;
 	}
+	else if (kw_cmp(src, len, "or")) {
+		tok->kind = TOK_KW_OR;
+	}
+	else if (kw_cmp(src, len, "and")) {
+		tok->kind = TOK_KW_AND;
+	}
+	else if (kw_cmp(src, len, "not")) {
+		tok->kind = TOK_KW_NOT;
+	}
 
 	return true;
 }
@@ -247,31 +279,20 @@ static bool produce_symbol(lexer_t* lx, token_t* tok) {
 	tok->kind = TOK_SYMBOL;
 	tok->end = lx->ptr;
 
-	size_t len = tok->end - tok->start;
-	const char* src = lx->src + tok->start;
-
-	if (kw_cmp(src, len, "let")) {
-		tok->kind = TOK_KW_LET;
-	}
-	else if (kw_cmp(src, len, "int")) {
-		tok->kind = TOK_KW_INT;
-	}
-	else if (kw_cmp(src, len, "def")) {
-		tok->kind = TOK_KW_DEF;
-	}
-
 	return true;
 }
 
 static bool produce_while(lexer_t* lx, token_t* tok, ccond_t cond, token_kind_t kind) {
-	tok->kind = kind;
 	tok->start = lx->ptr;
 
-	bool res = take_while(lx, cond);
+	if (!take_while(lx, cond)) {
+		return false;
+	}
 
+	tok->kind = kind;
 	tok->end = lx->ptr;
 
-	return res;
+	return true;
 }
 
 static bool produce_int(lexer_t* lx, token_t* tok) {
@@ -296,14 +317,32 @@ static bool produce_sigil(lexer_t* lx, token_t* tok) {
 	else if (take_str(lx, "/")) {
 		tok->kind = TOK_DIV;
 	}
+	else if (take_str(lx, ".")) {
+		tok->kind = TOK_APPLY;
+	}
+	else if (take_str(lx, "=")) {
+		tok->kind = TOK_EQ;
+	}
 	else if (take_str(lx, "(")) {
 		tok->kind = TOK_LPAREN;
 	}
 	else if (take_str(lx, ")")) {
 		tok->kind = TOK_RPAREN;
 	}
+	else if (take_str(lx, "[")) {
+		tok->kind = TOK_LSQUARE;
+	}
+	else if (take_str(lx, "]")) {
+		tok->kind = TOK_RSQUARE;
+	}
 	else if (take_str(lx, "?")) {
 		tok->kind = TOK_COND;
+	}
+	else if (take_str(lx, "$")) {
+		tok->kind = TOK_TYPE;
+	}
+	else {
+		return false;
 	}
 
 	tok->end = lx->ptr;
@@ -337,7 +376,7 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 	}
 
 	// skip whitespace and comments
-	while (take_while(lx, is_ws) || take_str(lx, "#!")) {
+	while (take_while(lx, is_ws) || peek_str(lx, "#!")) {
 		if (take_str(lx, "#!")) {
 			take_while(lx, is_not_nl);
 		}
@@ -363,9 +402,17 @@ bool lexer_next(lexer_t* lx, token_t* tok) {
 	return true;
 }
 
+typedef struct {
+} type_t;
+
 int main(void) {
-	const char* src = "-> + - * / ( )";
-	size_t len = strlen(src);
+	char* src;
+	size_t len;
+	errno_t err = read_file("test/test.deck", &src, &len);
+	if (err) {
+		return err;
+	}
+
 	lexer_t lx = lexer_create(src, len);
 
 	token_t tok;

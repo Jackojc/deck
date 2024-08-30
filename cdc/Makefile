@@ -39,7 +39,7 @@ $(BIN): $(COBJ_BIN)
 all: $(BIN)
 
 run: $(BIN)
-	./$(BIN) 
+	./$(BIN) || errno $?
 
 debug: $(BIN)
 	$(DBG) $(BIN)

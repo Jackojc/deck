@@ -1,14 +1,63 @@
-#! ints
-0 123 456
+#! 
+#! #! #! #! #! #! #! FIB IN C #! #! #! #! #! #! 
+#! int fib(int k) {
+#!     if (k == 0 || k == 1) { 
+#! 		return 1;
+#! 	}
+#! 
+#!     return fib(k - 1) + fib(k - 2);
+#! }
 
-#! string lits
-"Hello, \"World\"!"
+#! #! #! #! #! #! #! NAIVE FIB SOLUTION #! #! #! #! #! #! #! 
+#!	$(int) 
+#!
+#!	#k let 
+#!	k 0 = k 1 = or #res let
+#!
+#!	k
+#!	res &fib_b1 &fib_b2 ?
+#!
+#!#fib def
+#!
+#!	drop
+#!	1
+#!
+#!#fib_b1 def
+#!
+#!	$(int)
+#!
+#!	#k let
+#!	k 1 - fib k 2 - fib +
+#!
+#!#fib_b2 def
 
-#! punctuation
-+ $ # + - * / -> ( )
 
-#! keywords
-int def
 
-#! identifier
-abc_def123
+
+#! #! #! #! #! #! #! CLEAN SOLUTION (TODO) #! #! #! #! #! #! #! 
+
+	$int #k let 
+		k 0 = 
+		k 1 = 
+	or k
+		[drop 1]
+		[dup 1 - fib 
+		 swap 2 - fib +]
+	? .
+
+
+
+
+
+	$int #k let 
+		k 0 = 
+		k 1 = 
+	or
+		[1]
+		[k 1 - fib 
+		 k 2 - fib +]
+	? .
+
+#fib def
+#! closures, clone entire data stack, boxed on heap, bundles state + functionality (lisp closures)
+#! fat pointers as standard (?)
