@@ -1,50 +1,38 @@
-CC?=gcc
-DBG?=gdb
+# cdc
 
-TARGET?=debug
+.POSIX:
 
-CSRC_BIN:=$(wildcard src/*.c)
-COBJ_BIN:=$(patsubst src/%.c, build/%.c.o, $(CSRC_BIN))
+include config.mk
 
-CFLAGS+=-Wall -Wextra  -c -MMD
-LFLAGS+=-lm
+BIN = build/cdc
 
-ifeq ($(TARGET), debug)
-CFLAGS+=-Og -g -fsanitize=undefined -fstack-protector-strong
-LFLAGS+=-fsanitize=undefined -fstack-protector-strong
-else ifeq ($(TARGET), release)
-CFLAGS+=-O2 
-else
-$(error "unknown target $(TARGET)")
-endif
+SRC = $(wildcard src/*.c)
+OBJ = $(patsubst src/%.c, build/%.c.o, $(SRC))
 
-DEPS:=
+all: build/cdc
 
-CFLAGS+=$(foreach dep, $(DEPS), $(shell pkg-config --cflags $(dep)))
-LFLAGS+=$(foreach dep, $(DEPS), $(shell pkg-config --libs $(dep)))
+setup:
+	@mkdir -p build/
 
-CFLAGS_BIN:=$(CFLAGS) -Iinclude/ 
+build/%.c.o: src/%.c setup
+	$(CC) $(DECK_CFLAGS) -c $< -o $@
 
-BIN:=build/cdc
+build/cdc: $(OBJ)
+	$(CC) -o $@ $(OBJ) $(DECK_LDFLAGS)
 
-build/%.c.o: src/%.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS_BIN) $< -o $@
+clean:
+	rm -rf build/ cdc-$(VERSION).tar.gz
 
-$(BIN): $(COBJ_BIN)
-	$(CC) $(LFLAGS) $(COBJ_BIN)  -o $@
+install: cdc
+	mkdir -p $(DESTDIR)$(PREFIX)/bin
+	cp -f build/cdc $(DESTDIR)$(PREFIX)/bin
+	chmod 755 $(DESTDIR)$(PREFIX)/bin/cdc
+	mkdir -p $(DESTDIR)$(MANPREFIX)/man1
+	sed "s/VERSION/$(VERSION)/g" < cdc.1 > $(DESTDIR)$(MANPREFIX)/man1/cdc.1
+	chmod 644 $(DESTDIR)$(MANPREFIX)/man1/cdc.1
 
-.PHONY: all lib base run debug clean
+uninstall:
+	rm -f $(DESTDIR)$(PREFIX)/bin/cdc
+	rm -f $(DESTDIR)$(MANPREFIX)/man1/cdc.1
 
-all: $(BIN)
-
-run: $(BIN)
-	./$(BIN) || errno $?
-
-debug: $(BIN)
-	$(DBG) $(BIN)
-
-clean: 
-	rm -rf build/
-
--include build/*.c.d 
+.PHONY: all clean install uninstall
