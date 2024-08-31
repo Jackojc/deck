@@ -6,7 +6,6 @@ pkgs.mkShell rec {
   ];
   
   buildInputs = with pkgs; [
-    # tokei
     pkg-config
     gcc
     clang-tools
@@ -18,9 +17,4 @@ pkgs.mkShell rec {
   ];
 
   LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
-  # LOG_FILTER = "trace";
-
-  # shellHook = ''
-  #   export PATH="$PWD/util:$PATH"
-  # '';
 }
