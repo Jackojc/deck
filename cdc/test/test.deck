@@ -1,17 +1,17 @@
-#! 
-#! #! #! #! #! #! #! FIB IN C #! #! #! #! #! #! 
+#!
+#! #! #! #! #! #! #! FIB IN C #! #! #! #! #! #!
 #! int fib(int k) {
-#!     if (k == 0 || k == 1) { 
+#!     if (k == 0 || k == 1) {
 #! 		return 1;
 #! 	}
-#! 
+#!
 #!     return fib(k - 1) + fib(k - 2);
 #! }
 
-#! #! #! #! #! #! #! NAIVE FIB SOLUTION #! #! #! #! #! #! #! 
-#!	$(int) 
+#! #! #! #! #! #! #! NAIVE FIB SOLUTION #! #! #! #! #! #! #!
+#!	$(int)
 #!
-#!	#k let 
+#!	#k let
 #!	k 0 = k 1 = or #res let
 #!
 #!	k
@@ -34,14 +34,14 @@
 
 
 
-#! #! #! #! #! #! #! CLEAN SOLUTION (TODO) #! #! #! #! #! #! #! 
+#! #! #! #! #! #! #! CLEAN SOLUTION (TODO) #! #! #! #! #! #! #!
 
-	$int #k let 
-		k 0 = 
-		k 1 = 
+	$int #k let
+		k 0 =
+		k 1 =
 	or k
 		[drop 1]
-		[dup 1 - fib 
+		[dup 1 - fib
 		 swap 2 - fib +]
 	? .
 
@@ -49,12 +49,12 @@
 
 
 
-	$int #k let 
-		k 0 = 
-		k 1 = 
+	$int #k let
+		k 0 =
+		k 1 =
 	or
 		[1]
-		[k 1 - fib 
+		[k 1 - fib
 		 k 2 - fib +]
 	? .
 

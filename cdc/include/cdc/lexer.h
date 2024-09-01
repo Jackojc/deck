@@ -331,18 +331,18 @@ static bool dk_produce_sigil(dk_lexer_t* lx, dk_instr_t* instr) {
 #define DK_PRODUCE_SIGIL(s, k) dk_produce_str(lx, instr, s, k)
 	// clang-format off
 
-	return DK_PRODUCE_SIGIL(DK_ARROW,    "->") || 
+	return DK_PRODUCE_SIGIL(DK_ARROW,    "->") ||
 	       DK_PRODUCE_SIGIL(DK_ADD,      "+")  ||
-		   DK_PRODUCE_SIGIL(DK_SUB,      "-")  || 
+		   DK_PRODUCE_SIGIL(DK_SUB,      "-")  ||
 		   DK_PRODUCE_SIGIL(DK_MUL,      "*")  ||
-		   DK_PRODUCE_SIGIL(DK_DIV,      "/")  || 
+		   DK_PRODUCE_SIGIL(DK_DIV,      "/")  ||
 		   DK_PRODUCE_SIGIL(DK_APPLY,    ".")  ||
 		   DK_PRODUCE_SIGIL(DK_EQUAL,    "=")  ||
 		   DK_PRODUCE_SIGIL(DK_LPAREN,   "(")  ||
 		   DK_PRODUCE_SIGIL(DK_RPAREN,   ")")  ||
 		   DK_PRODUCE_SIGIL(DK_LBRACKET, "[")  ||
 		   DK_PRODUCE_SIGIL(DK_RBRACKET, "]")  ||
-		   DK_PRODUCE_SIGIL(DK_COND,     "?")  || 
+		   DK_PRODUCE_SIGIL(DK_COND,     "?")  ||
 		   DK_PRODUCE_SIGIL(DK_TYPE,     "$");
 
 	// clang-format on
