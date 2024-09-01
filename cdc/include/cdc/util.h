@@ -11,6 +11,9 @@
 
 #include "def.h"
 
+#define DK_MAX(a, b) ((a > b) ? a : b)
+#define DK_MIN(a, b) ((a < b) ? a : b)
+
 // Return absolute difference between 2 pointers regardless of order.
 size_t dk_ptrdiff(const void* a, const void* b) {
 	return b > a ? b - a : a - b;
@@ -31,21 +34,24 @@ bool dk_strncmp(const char* ptr, const char* end, const char* str) {
 
 // Read bytes from stdin to a growing buffer until EOF.
 dk_err_t dk_read_stdin(char** buffer, size_t* length) {
-	size_t capacity = 0;
+	// TODO: Just increase allocations by fixed amount with IO.
+	char* buf = realloc(NULL, 256);
+
+	size_t capacity = 256;
 	size_t index = 0;
 
 	int c;
 	while ((c = fgetc(stdin)) != EOF) {
-		if (index > capacity) {
-			capacity *= 2;
-			*buffer = realloc(*buffer, capacity);
+		// if (index >= capacity) {
+		// 	capacity *= 2;
+		// 	*buffer = realloc(*buffer, capacity);
 
-			if (!*buffer) {
-				return errno;
-			}
-		}
+		// 	if (!*buffer) {
+		// 		return errno;
+		// 	}
+		// }
 
-		(*buffer)[index++] = c;
+		buf[index++] = c;
 	}
 
 	if (ferror(stdin)) {
@@ -94,44 +100,45 @@ dk_err_t dk_read_file(const char* path, char** buf_out, size_t* len_out) {
 	return 0;
 }
 
-dk_err_t dk_basename(const char* path, char* out, size_t size) {
-	memset(out, 0, size);
+// dk_err_t dk_basename(const char* path, char* out, size_t size) {
+// 	memset(out, 0, size);
 
-	size_t len = strlen(path);
+// 	size_t len = strlen(path);
 
-	char* last = strrchr(path, '/');
-	if (!last) {
-		if (len > size) {
-			return ENAMETOOLONG;
-		}
+// 	char* last = strrchr(path, '/');
+// 	if (!last) {
+// 		if (len > size) {
+// 			return ENAMETOOLONG;
+// 		}
 
-		memcpy(out, path, len);
-		return 0;
-	}
+// 		memcpy(out, path, len);
+// 		return 0;
+// 	}
 
-	len = strlen(last + 1);
-	if (len > size) {
-		return ENAMETOOLONG;
-	}
+// 	len = strlen(last + 1);
+// 	if (len > size) {
+// 		return ENAMETOOLONG;
+// 	}
 
-	// memcpy(out, last + 1, len);
-	strncpy(out, last + 1, size - len);
+// 	// memcpy(out, last + 1, len);
+// 	strncpy(out, last + 1, size - len);
 
-	return 0;
-}
+// 	return 0;
+// }
 
 // Get the name of the binary from argv[0].
 // Basically `basename` but without allocating or trimming trailing slashes.
 const char* dk_exe(const char* exe) {
 	size_t slash = 0;
+	size_t i = 0;
 
-	for (const char* ptr = exe; *ptr != '\0'; ++ptr) {
-		if (*ptr == '/') {
-			slash = dk_ptrdiff(ptr, exe);
+	for (; exe[i] != '\0'; ++i) {
+		if (exe[i] == '/') {
+			slash = i + 1;
 		}
 	}
 
-	return exe + ;
+	return exe + DK_MIN(slash, i);
 }
 
 #endif

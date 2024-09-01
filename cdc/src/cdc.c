@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <cdc/alloc.h>
+// #include <cdc/alloc.h>
 #include <cdc/backend.h>
 #include <cdc/def.h>
 #include <cdc/lexer.h>
@@ -58,6 +58,23 @@ int main(int argc, char* argv[]) {
 	// }
 
 	// free(src);
+
+	char* str;
+	size_t length;
+
+	dk_err_t err;
+
+	if ((err = dk_read_stdin(&str, &length))) {
+		fprintf(stderr, "error: <stdin>: %s\n", strerror(err));
+		return 1;
+	}
+
+	dk_instr_t instr;
+	dk_lexer_t lx = dk_lexer_create(str, str + length);
+
+	// while (dk_lexer_take(&lx, &instr) && instr.kind != DK_ENDFILE) {
+	// 	dk_instr_print(&lx, instr);
+	// }
 
 	return 0;
 }
