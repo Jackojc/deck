@@ -7,8 +7,27 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
-#include "defs.h"
+#include "def.h"
+
+// Return absolute difference between 2 pointers regardless of order.
+size_t dk_ptrdiff(const void* a, const void* b) {
+	return b > a ? b - a : a - b;
+}
+
+// Compare strings after first comparing length.
+bool dk_strncmp(const char* ptr, const char* end, const char* str) {
+	size_t length = dk_ptrdiff(ptr, end);
+
+	// TODO: Write our own strncmp implementation here to avoid
+	// iterating string twice due to strlen.
+	if (length != strlen(str)) {
+		return false;
+	}
+
+	return strncmp(ptr, str, length) == 0;
+}
 
 // Read bytes from stdin to a growing buffer until EOF.
 dk_err_t dk_read_stdin(char** buffer, size_t* length) {
@@ -99,6 +118,20 @@ dk_err_t dk_basename(const char* path, char* out, size_t size) {
 	strncpy(out, last + 1, size - len);
 
 	return 0;
+}
+
+// Get the name of the binary from argv[0].
+// Basically `basename` but without allocating or trimming trailing slashes.
+const char* dk_exe(const char* exe) {
+	size_t slash = 0;
+
+	for (const char* ptr = exe; *ptr != '\0'; ++ptr) {
+		if (*ptr == '/') {
+			slash = dk_ptrdiff(ptr, exe);
+		}
+	}
+
+	return exe + ;
 }
 
 #endif
