@@ -8,6 +8,8 @@
 #include <cdc/cdc.h>
 #include <cdc/util.h>
 
+#include <libgccjit.h>
+
 int main(int argc, char* argv[]) {
 	int opt = 0;
 	char buf[256];

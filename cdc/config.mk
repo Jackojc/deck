@@ -9,11 +9,11 @@ PKG_CONFIG = pkg-config
 
 # headers/libs
 INCS = -Iinclude/
-LIBS =
+LIBS = -lgccjit
 DEPS =
 
 # flags
-CFLAGS += --std=c11 -Wall -Wextra -O3 -g
+CFLAGS += -Wall -Wextra -O3 -g
 
 CFLAGS += $(foreach dep, $(DEPS), $(shell pkg-config --cflags $(dep)))
 LDFLAGS += $(foreach dep, $(DEPS), $(shell pkg-config --libs $(dep)))

@@ -73,6 +73,7 @@ static char peek(lexer_t* lx) {
 	if (lx->ptr >= lx->len) {
 		return '\0';
 	}
+
 	return lx->src[lx->ptr];
 }
 
@@ -81,6 +82,7 @@ static bool take(lexer_t* lx) {
 	if (lx->ptr >= lx->len) {
 		return '\0';
 	}
+
 	return lx->src[lx->ptr++];
 }
 
@@ -115,9 +117,11 @@ static bool peek_str(lexer_t* lx, const char* str) {
 // consume chars from stream while cond holds true
 static bool take_while(lexer_t* lx, ccond_t cond) {
 	bool taken = false;
+
 	while (take_if(lx, cond)) {
 		taken = true;
 	}
+
 	return taken;
 }
 
