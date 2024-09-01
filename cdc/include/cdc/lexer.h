@@ -1,5 +1,5 @@
-#ifndef CDC_H
-#define CDC_H
+#ifndef CDC_LEXER_H
+#define CDC_LEXER_H
 
 #include <ctype.h>
 #include <stdbool.h>
