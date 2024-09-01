@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <cdc/alloc.h>
 #include <cdc/cdc.h>
 #include <cdc/util.h>
 
