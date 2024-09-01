@@ -21,7 +21,7 @@ build/cdc: $(OBJ)
 	$(CC) -o $@ $(OBJ) $(DECK_LDFLAGS)
 
 clean:
-	rm -rf build/ cdc-$(VERSION).tar.gz
+	rm -rf build/
 
 install: cdc
 	mkdir -p $(DESTDIR)$(PREFIX)/bin
