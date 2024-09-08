@@ -93,13 +93,19 @@ typedef struct {
 	dk_instr_t peek;
 } dk_lexer_t;
 
+bool dk_lexer_take(dk_lexer_t*, dk_instr_t*);
+
 dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
-	return (dk_lexer_t){
+	dk_lexer_t lx = (dk_lexer_t){
 		.src = ptr,
 		.ptr = ptr,
 		.end = end,
 		.peek = dk_instr_create(DK_NONE, ptr, ptr),
 	};
+
+	dk_lexer_take(&lx, NULL);
+
+	return lx;
 }
 
 // Debugging/printing
@@ -108,10 +114,11 @@ dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
 // TODO: Print position info for tokens?
 void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
 	printf(
-		"{.kind = %s, .ptr = %p, .end = %p}",
+		"kind = %s, ptr = %p, end = %p, size = %lu\n",
 		DK_INSTR_TO_STR[instr.kind],
 		(void*) instr.ptr,
-		(void*) instr.end);
+		(void*) instr.end,
+		dk_ptrdiff(instr.ptr, instr.end));
 }
 
 void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
@@ -143,7 +150,9 @@ static char dk_take(dk_lexer_t* lx) {
 
 // Conditional consumers
 static bool dk_take_if(dk_lexer_t* lx, dk_pred_t cond) {
-	if (!cond(dk_peek(lx))) {
+	char c = dk_peek(lx);
+
+	if (!c || !cond(c)) {
 		return false;
 	}
 
@@ -373,7 +382,10 @@ bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 // Core lexer interface
 // TODO: Reconsider implementation. Is it safe to always return true?
 bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
-	*instr = lx->peek;
+	if (instr != NULL) {
+		*instr = lx->peek;
+	}
+
 	return true;
 }
 
@@ -382,18 +394,18 @@ bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
+	// Handle EOF
 	if (lx->ptr >= lx->end) {
 		next_instr.kind = DK_ENDFILE;
-		return true;
 	}
 
-	// produce tokens
-	if (!(dk_produce_whitespace(lx, &next_instr) ||
-		  dk_produce_comment(lx, &next_instr) ||
-		  dk_produce_ident(lx, &next_instr) ||
-		  dk_produce_symbol(lx, &next_instr) ||
-		  dk_produce_number(lx, &next_instr) ||
-		  dk_produce_sigil(lx, &next_instr)))
+	// Handle normal tokens
+	else if (!(dk_produce_whitespace(lx, &next_instr) ||
+			   dk_produce_comment(lx, &next_instr) ||
+			   dk_produce_ident(lx, &next_instr) ||
+			   dk_produce_symbol(lx, &next_instr) ||
+			   dk_produce_number(lx, &next_instr) ||
+			   dk_produce_sigil(lx, &next_instr)))
 	{
 		// TODO: Error in the case of no tokens matched.
 		return false;
@@ -401,7 +413,10 @@ bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 
 	// Return previously peeked token and then store newly
 	// lexed token to be used on the next call to peek.
-	dk_lexer_peek(lx, instr);
+	if (instr != NULL) {
+		dk_lexer_peek(lx, instr);
+	}
+
 	lx->peek = next_instr;
 
 	return true;

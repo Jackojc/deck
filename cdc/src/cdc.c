@@ -60,22 +60,25 @@ int main(int argc, char* argv[]) {
 
 	// free(src);
 
-	char* str;
-	size_t length;
+	// char* str;
+	// size_t length;
 
-	dk_err_t err;
+	// dk_err_t err;
 
-	if ((err = dk_read_stdin(&str, &length))) {
-		fprintf(stderr, "error: <stdin>: %s\n", strerror(err));
-		return 1;
-	}
+	// if ((err = dk_read_stdin(&str, &length))) {
+	// 	fprintf(stderr, "error: <stdin>: %s\n", strerror(err));
+	// 	return 1;
+	// }
+
+	const char* str =
+		"f ba baz     \n FUCKER  #! sdofhsodfhoisdfhio\n          fuck";
 
 	dk_instr_t instr;
-	dk_lexer_t lx = dk_lexer_create(str, str + length);
+	dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
 
-	// while (dk_lexer_take(&lx, &instr) && instr.kind != DK_ENDFILE) {
-	// 	dk_instr_print(&lx, instr);
-	// }
+	while (dk_lexer_take(&lx, &instr) && instr.kind != DK_ENDFILE) {
+		dk_instr_print(&lx, instr);
+	}
 
 	return 0;
 }
