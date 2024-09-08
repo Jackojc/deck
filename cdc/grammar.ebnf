@@ -1,0 +1,18 @@
+literal ::= number | string
+word ::= ? ident ?
+quote ::= '[' expr* ']'
+
+type ::= '$' '(' typename ')'
+fn-type ::= 'fn' '(' typename* '->' typename* ')'
+typename ::= 'int' | 'string' | '*' | fn-type
+
+swizzle ::= '(' ident+ '->' ident* ')'
+
+expr ::=
+	literal |
+	word |
+	quote |
+	type |
+	swizzle
+
+program ::= expression*
