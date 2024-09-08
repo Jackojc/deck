@@ -13,7 +13,7 @@ LIBS = -lgccjit
 DEPS =
 
 # flags
-CFLAGS += -Wall -Wextra -Wno-unused -O3 -g
+CFLAGS += -Wall -Wextra -Wno-unused -O3 -g -std=c11
 
 CFLAGS += $(foreach dep, $(DEPS), $(shell pkg-config --cflags $(dep)))
 LDFLAGS += $(foreach dep, $(DEPS), $(shell pkg-config --libs $(dep)))
