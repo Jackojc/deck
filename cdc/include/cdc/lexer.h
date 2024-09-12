@@ -70,16 +70,22 @@ const char* DK_INSTR_TO_STR[] = {INSTRUCTIONS};
 typedef struct {
 	dk_instr_kind_t kind;
 
-	const char* ptr;
-	const char* end;
+	union {
+		struct {
+			const char* ptr;
+			const char* end;
+		} str;
+
+		size_t num;
+	};
 } dk_instr_t;
 
 dk_instr_t
 dk_instr_create(dk_instr_kind_t kind, const char* ptr, const char* end) {
 	return (dk_instr_t){
 		.kind = kind,
-		.ptr = ptr,
-		.end = end,
+		.str.ptr = ptr,
+		.str.end = end,
 	};
 }
 
@@ -116,9 +122,9 @@ void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
 	printf(
 		"kind = %s, ptr = %p, end = %p, size = %lu\n",
 		DK_INSTR_TO_STR[instr.kind],
-		(void*) instr.ptr,
-		(void*) instr.end,
-		dk_ptrdiff(instr.ptr, instr.end));
+		(void*) instr.str.ptr,
+		(void*) instr.str.end,
+		dk_ptrdiff(instr.str.ptr, instr.str.end));
 }
 
 void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
@@ -231,7 +237,7 @@ static bool dk_produce_if(
 		return false;
 	}
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 	instr->kind = kind;
 
 	return true;
@@ -245,7 +251,7 @@ static bool dk_produce_while(
 		return false;
 	}
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 	instr->kind = kind;
 
 	return true;
@@ -259,7 +265,7 @@ static bool dk_produce_str(
 		return false;
 	}
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 	instr->kind = kind;
 
 	return true;
@@ -274,7 +280,7 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 
 	dk_take_while(lx, dk_is_ident);
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 
 	// We could have used `dk_produce_str` here to handle these cases
 	// but we want "maximal munch" meaning that we lex the entire
@@ -283,29 +289,29 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 	// as 2 seperate tokens because it sees `let` and stops there.
 
 	// Keywords
-	if (dk_strncmp(instr->ptr, instr->end, "let")) {
+	if (dk_strncmp(instr->str.ptr, instr->str.end, "let")) {
 		instr->kind = DK_LET;
 	}
 
-	else if (dk_strncmp(instr->ptr, instr->end, "def")) {
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "def")) {
 		instr->kind = DK_DEFINE;
 	}
 
 	// Operators
-	else if (dk_strncmp(instr->ptr, instr->end, "or")) {
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "or")) {
 		instr->kind = DK_OR;
 	}
 
-	else if (dk_strncmp(instr->ptr, instr->end, "and")) {
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "and")) {
 		instr->kind = DK_AND;
 	}
 
-	else if (dk_strncmp(instr->ptr, instr->end, "not")) {
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "not")) {
 		instr->kind = DK_NOT;
 	}
 
 	// Types
-	else if (dk_strncmp(instr->ptr, instr->end, "int")) {
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "int")) {
 		instr->kind = DK_TYPE_NUMBER;
 	}
 
@@ -326,7 +332,7 @@ static bool dk_produce_symbol(dk_lexer_t* lx, dk_instr_t* instr) {
 
 	dk_take_while(lx, dk_is_ident);
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 	instr->kind = DK_SYMBOL;
 
 	return true;
@@ -373,7 +379,7 @@ bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 		return false;
 	}
 
-	instr->end = lx->ptr;
+	instr->str.end = lx->ptr;
 	instr->kind = DK_COMMENT;
 
 	return true;

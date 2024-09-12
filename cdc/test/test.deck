@@ -61,3 +61,15 @@
 #fib def
 #! closures, clone entire data stack, boxed on heap, bundles state + functionality (lisp closures)
 #! fat pointers as standard (?)
+
+
+#! arg fn call2 -> arg fn fn -> fn arg fn . fn res swap .
+
+[ dup rot . swap . ] #call2
+
+[
+	$( fn(* -> *) )
+	dup rot . swap .
+] #call2
+
+2 [dup *] .
