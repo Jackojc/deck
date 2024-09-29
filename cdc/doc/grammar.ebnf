@@ -2,7 +2,7 @@ literal ::= number | string
 builtin ::= ? ident ?
 function ::= '[' expr* ']'
 
-assertion ::= '$' '(' typename ')'
+assertion ::= '$' '(' typename+ ')'
 fn-type ::= 'fn' '(' typename* '->' typename* ')'
 typename ::= 'int' | 'string' | 'any' | fn-type
 

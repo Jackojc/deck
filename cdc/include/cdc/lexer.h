@@ -27,6 +27,7 @@
 	X(DK_TYPE_NUMBER) \
 	X(DK_TYPE_STRING) \
 	X(DK_TYPE_ANY) \
+	X(DK_TYPE_FN) \
 \
 	/* Keywords */ \
 	X(DK_DEFINE) \
