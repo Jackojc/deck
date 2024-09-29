@@ -1,18 +1,18 @@
 literal ::= number | string
-word ::= ? ident ?
-quote ::= '[' expr* ']'
+builtin ::= ? ident ?
+function ::= '[' expr* ']'
 
-type ::= '$' '(' typename ')'
+assertion ::= '$' '(' typename ')'
 fn-type ::= 'fn' '(' typename* '->' typename* ')'
-typename ::= 'int' | 'string' | '*' | fn-type
+typename ::= 'int' | 'string' | 'any' | fn-type
 
 swizzle ::= '(' ident+ '->' ident* ')'
 
 expr ::=
 	literal |
-	word |
-	quote |
-	type |
+	builtin |
+	function |
+	assertion |
 	swizzle
 
 program ::= expression*
