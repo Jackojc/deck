@@ -15,12 +15,12 @@
 #define DK_MIN(a, b) ((a < b) ? a : b)
 
 // Return absolute difference between 2 pointers regardless of order.
-size_t dk_ptrdiff(const void* a, const void* b) {
+static size_t dk_ptrdiff(const void* a, const void* b) {
 	return b > a ? b - a : a - b;
 }
 
 // Compare strings after first comparing length.
-bool dk_strncmp(const char* ptr, const char* end, const char* str) {
+static bool dk_strncmp(const char* ptr, const char* end, const char* str) {
 	size_t length = dk_ptrdiff(ptr, end);
 
 	// TODO: Write our own strncmp implementation here to avoid
@@ -33,7 +33,7 @@ bool dk_strncmp(const char* ptr, const char* end, const char* str) {
 }
 
 // Read bytes from stdin to a growing buffer until EOF.
-dk_err_t dk_read_stdin(char** buffer, size_t* length) {
+static dk_err_t dk_read_stdin(char** buffer, size_t* length) {
 	// TODO: Just increase allocations by fixed amount with IO.
 	char* buf = realloc(NULL, 256);
 
@@ -63,7 +63,8 @@ dk_err_t dk_read_stdin(char** buffer, size_t* length) {
 	return 0;
 }
 
-dk_err_t dk_read_file(const char* path, char** buf_out, size_t* len_out) {
+static dk_err_t
+dk_read_file(const char* path, char** buf_out, size_t* len_out) {
 	FILE* file = fopen(path, "r");
 	if (!file) {
 		return errno;
@@ -128,7 +129,7 @@ dk_err_t dk_read_file(const char* path, char** buf_out, size_t* len_out) {
 
 // Get the name of the binary from argv[0].
 // Basically `basename` but without allocating or trimming trailing slashes.
-const char* dk_exe(const char* exe) {
+static const char* dk_exe(const char* exe) {
 	size_t slash = 0;
 	size_t i = 0;
 

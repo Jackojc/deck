@@ -67,8 +67,13 @@ const char* DK_INSTR_TO_STR[] = {INSTRUCTIONS};
 #undef INSTRUCTIONS
 
 // Token/Instruction
-typedef struct {
+typedef struct dk_instr_t dk_instr_t;
+
+struct dk_instr_t {
 	dk_instr_kind_t kind;
+
+	dk_instr_t* next;
+	dk_instr_t* prev;
 
 	union {
 		struct {
@@ -78,12 +83,16 @@ typedef struct {
 
 		size_t num;
 	};
-} dk_instr_t;
+};
 
-dk_instr_t
+static dk_instr_t
 dk_instr_create(dk_instr_kind_t kind, const char* ptr, const char* end) {
 	return (dk_instr_t){
 		.kind = kind,
+
+		.next = NULL,
+		.prev = NULL,
+
 		.str.ptr = ptr,
 		.str.end = end,
 	};
@@ -99,9 +108,9 @@ typedef struct {
 	dk_instr_t peek;
 } dk_lexer_t;
 
-bool dk_lexer_take(dk_lexer_t*, dk_instr_t*);
+static bool dk_lexer_take(dk_lexer_t*, dk_instr_t*);
 
-dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
+static dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
 	dk_lexer_t lx = (dk_lexer_t){
 		.src = ptr,
 		.ptr = ptr,
@@ -118,7 +127,7 @@ dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
 // TODO: Make these functions returned a formatted buffer rather than
 // calling printf within.
 // TODO: Print position info for tokens?
-void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
+static void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
 	printf(
 		"kind = %s, ptr = %p, end = %p, size = %lu\n",
 		DK_INSTR_TO_STR[instr.kind],
@@ -127,7 +136,7 @@ void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
 		dk_ptrdiff(instr.str.ptr, instr.str.end));
 }
 
-void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
+static void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
 	// TODO: Print lexer state in some readable fashion for debugging.
 	// Some ideas:
 	// - Print all tokens and then reset lexer state (set `ptr` to `src`)
@@ -364,11 +373,11 @@ static bool dk_produce_sigil(dk_lexer_t* lx, dk_instr_t* instr) {
 #undef DK_PRODUCE_SIGIL
 }
 
-bool dk_produce_whitespace(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_produce_whitespace(dk_lexer_t* lx, dk_instr_t* instr) {
 	return dk_produce_while(lx, instr, DK_WHITESPACE, dk_is_whitespace);
 }
 
-bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_str(lx, "#!")) {
@@ -387,7 +396,7 @@ bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // Core lexer interface
 // TODO: Reconsider implementation. Is it safe to always return true?
-bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 	if (instr != NULL) {
 		*instr = lx->peek;
 	}
@@ -397,7 +406,7 @@ bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // TODO: Make lexer_next produce all tokens and then wrap it in
 // another function which skips whitespace and comments.
-bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	// Handle EOF
