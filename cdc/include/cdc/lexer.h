@@ -25,6 +25,8 @@
 \
 	/* Types */ \
 	X(DK_TYPE_NUMBER) \
+	X(DK_TYPE_STRING) \
+	X(DK_TYPE_ANY) \
 \
 	/* Keywords */ \
 	X(DK_DEFINE) \
@@ -67,6 +69,8 @@ const char* DK_INSTR_TO_STR[] = {INSTRUCTIONS};
 #undef INSTRUCTIONS
 
 // Token/Instruction
+typedef bool (*dk_lexer_pred_t)(char);  // Used for lexer predicates
+
 typedef struct dk_instr_t dk_instr_t;
 
 struct dk_instr_t {
@@ -164,7 +168,7 @@ static char dk_take(dk_lexer_t* lx) {
 }
 
 // Conditional consumers
-static bool dk_take_if(dk_lexer_t* lx, dk_pred_t cond) {
+static bool dk_take_if(dk_lexer_t* lx, dk_lexer_pred_t cond) {
 	char c = dk_peek(lx);
 
 	if (!c || !cond(c)) {
@@ -202,7 +206,7 @@ static bool dk_take_str(dk_lexer_t* lx, const char* str) {
 	return true;
 }
 
-static bool dk_take_while(dk_lexer_t* lx, dk_pred_t cond) {
+static bool dk_take_while(dk_lexer_t* lx, dk_lexer_pred_t cond) {
 	bool taken = false;
 
 	while (dk_take_if(lx, cond)) {
@@ -239,7 +243,10 @@ static bool dk_is_ident(char c) {
 
 // Token producers
 static bool dk_produce_if(
-	dk_lexer_t* lx, dk_instr_t* instr, dk_instr_kind_t kind, dk_pred_t cond) {
+	dk_lexer_t* lx,
+	dk_instr_t* instr,
+	dk_instr_kind_t kind,
+	dk_lexer_pred_t cond) {
 	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_if(lx, cond)) {
@@ -253,7 +260,10 @@ static bool dk_produce_if(
 }
 
 static bool dk_produce_while(
-	dk_lexer_t* lx, dk_instr_t* instr, dk_instr_kind_t kind, dk_pred_t cond) {
+	dk_lexer_t* lx,
+	dk_instr_t* instr,
+	dk_instr_kind_t kind,
+	dk_lexer_pred_t cond) {
 	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_while(lx, cond)) {
@@ -322,6 +332,14 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 	// Types
 	else if (dk_strncmp(instr->str.ptr, instr->str.end, "int")) {
 		instr->kind = DK_TYPE_NUMBER;
+	}
+
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "string")) {
+		instr->kind = DK_TYPE_STRING;
+	}
+
+	else if (dk_strncmp(instr->str.ptr, instr->str.end, "any")) {
+		instr->kind = DK_TYPE_ANY;
 	}
 
 	// User identifier

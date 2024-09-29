@@ -9,6 +9,7 @@
 #include <cdc/backend.h>
 #include <cdc/def.h>
 #include <cdc/lexer.h>
+#include <cdc/parser.h>
 #include <cdc/util.h>
 #include <cdc/str.h>
 
