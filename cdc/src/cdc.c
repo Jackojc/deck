@@ -12,6 +12,7 @@
 #include <cdc/parser.h>
 #include <cdc/util.h>
 #include <cdc/str.h>
+#include <cdc/log.h>
 
 int main(int argc, char* argv[]) {
 	// int opt = 0;
@@ -71,15 +72,20 @@ int main(int argc, char* argv[]) {
 	// 	return 1;
 	// }
 
-	const char* str =
-		"f ba baz     \n FUCKER  #! sdofhsodfhoisdfhio\n          fuck";
+	// const char* str =
+	// 	"f ba baz     \n FUCKER  #! sdofhsodfhoisdfhio\n          fuck";
 
-	dk_instr_t instr;
-	dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
+	// dk_instr_t instr;
+	// dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
 
-	while (dk_lexer_take(&lx, &instr) && instr.kind != DK_ENDFILE) {
-		dk_instr_print(&lx, instr);
-	}
+	// while (dk_lexer_take(&lx, &instr) && instr.kind != DK_ENDFILE) {
+	// 	dk_instr_print(&lx, instr);
+	// }
+
+	// dk_logger_t log = dk_logger_create();
+	// DK_OKAY(log, "foo");
+
+	dk_parse("[ bar ]");
 
 	return 0;
 }

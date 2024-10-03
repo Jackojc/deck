@@ -4,15 +4,17 @@
 #include "lexer.h"
 #include "def.h"
 #include "util.h"
+#include "log.h"
 
 typedef struct {
+	dk_logger_t log;
 	// Function definitions
 	// Bindings
 	// Typestack
 } dk_context_t;
 
 static dk_context_t dk_context_create() {
-	return (dk_context_t){};
+	return (dk_context_t){.log = dk_logger_create()};
 }
 
 // Primary call that sets up lexer and context automatically.
@@ -58,6 +60,7 @@ static bool dk_is_primitive(dk_instr_t instr) {
 
 static bool dk_is_expression(dk_instr_t instr) {
 	return dk_is_literal(instr) || dk_is_builtin(instr) ||
+		   instr.kind == DK_IDENT ||     // Call
 		   instr.kind == DK_LBRACKET ||  // Function
 		   instr.kind == DK_TYPE ||      // Type assertion
 		   instr.kind == DK_LPAREN;      // Swizzle
@@ -102,6 +105,7 @@ static bool dk_peek_is_type(dk_lexer_t* lx) {
 static void
 dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* msg) {
 	DK_UNUSED(lx, kind, msg);
+	abort();
 
 	// TODO: Check if the next token is `kind`. If not, report `msg` and abort
 	// compilation.
@@ -109,15 +113,18 @@ dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* msg) {
 
 static void dk_expect(dk_lexer_t* lx, dk_parser_pred_t cond, const char* msg) {
 	DK_UNUSED(lx, cond, msg);
+	abort();
 
 	// TODO: Check if the next token satisfies `cond`. If not, report `msg` and
 	// abort compilation.
 }
 
 // Implementation of core parsing functions
-static dk_instr_t* dk_parse(const char* str) {
+static dk_instr_t* dk_parse(const char* str) {  // TODO: Pass string + len
 	dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
-	dk_context_t ctx = dk_context_create();
+	dk_context_t ctx = dk_context_create();     // TODO: Pass by pointer.
+
+	DK_TRACE(ctx.log, "foo");
 
 	dk_instr_t* program = dk_parse_program(&ctx, &lx);
 
@@ -126,6 +133,7 @@ static dk_instr_t* dk_parse(const char* str) {
 
 // Core parsing functions
 static dk_instr_t* dk_parse_program(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_instr_t* program =
 		NULL;  // TODO: Use allocator API to construct linked list.
 
@@ -136,10 +144,13 @@ static dk_instr_t* dk_parse_program(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_instr_t* expr = dk_parse_expression(ctx, lx);
 	}
 
+	dk_expect_kind(lx, DK_ENDFILE, "unexpected token");
+
 	return program;
 }
 
 static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect(lx, dk_is_expression, "expected an expression");
 
 	dk_instr_t* expression =
@@ -153,6 +164,14 @@ static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
 	// Builtin operators/functions
 	else if (dk_peek_is_builtin(lx)) {
 		expression = dk_parse_builtin(ctx, lx);
+	}
+
+	// Symbol reference
+	else if (dk_peek_is_kind(lx, DK_IDENT)) {
+		dk_instr_t instr;
+		dk_lexer_take(lx, &instr);
+
+		// TODO: Handle symbol reference that isn't a builtin
 	}
 
 	// Functions
@@ -174,12 +193,15 @@ static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
 
 	else {
 		// TODO: Unreachable
+		DK_ERROR(ctx->log, "unknown token");
+		abort();
 	}
 
 	return expression;
 }
 
 static dk_instr_t* dk_parse_function(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect_kind(lx, DK_LBRACKET, "expected '['");
 	dk_lexer_take(lx, NULL);
 
@@ -199,6 +221,7 @@ static dk_instr_t* dk_parse_function(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_builtin(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect(lx, dk_is_builtin, "expected a built-in");
 
 	// TODO: Allocate this node on the heap and return the pointer.
@@ -209,6 +232,7 @@ static dk_instr_t* dk_parse_builtin(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_literal(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect(lx, dk_is_literal, "expected a literal");
 
 	// TODO: Allocate this node on the heap and return the pointer.
@@ -219,6 +243,7 @@ static dk_instr_t* dk_parse_literal(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_type(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_instr_t instr;
 
 	if (dk_peek_is_kind(lx, DK_TYPE_NUMBER)) {
@@ -245,6 +270,7 @@ static dk_instr_t* dk_parse_type(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_fntype(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect_kind(lx, DK_TYPE_FN, "expected 'fn'");
 	dk_lexer_take(lx, NULL);
 
@@ -272,6 +298,7 @@ static dk_instr_t* dk_parse_fntype(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_assertion(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect_kind(lx, DK_TYPE, "expected '$'");
 	dk_lexer_take(lx, NULL);
 
@@ -292,6 +319,7 @@ static dk_instr_t* dk_parse_assertion(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_swizzle(dk_context_t* ctx, dk_lexer_t* lx) {
+	DK_TRACE(ctx->log, "foo");
 	dk_expect_kind(lx, DK_LPAREN, "expected '('");
 	dk_lexer_take(lx, NULL);
 

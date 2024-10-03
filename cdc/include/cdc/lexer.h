@@ -8,6 +8,7 @@
 
 #include "def.h"
 #include "util.h"
+#include "log.h"
 
 // Tokens/Instructions
 #define INSTRUCTIONS \
