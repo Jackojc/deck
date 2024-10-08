@@ -85,7 +85,7 @@ int main(int argc, char* argv[]) {
 	// dk_logger_t log = dk_logger_create();
 	// DK_OKAY(log, "foo");
 
-	dk_parse("[ bar ]");
+	dk_parse("foo bar");
 
 	return 0;
 }

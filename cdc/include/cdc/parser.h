@@ -78,6 +78,10 @@ static bool dk_peek_is(dk_lexer_t* lx, dk_parser_pred_t cond) {
 	dk_instr_t instr;
 	dk_lexer_peek(lx, &instr);
 
+	dk_log(
+		DK_LOGGER, DK_TRACE, "%.*s", dk_instr_strlen(instr),
+		dk_instr_str(instr));
+
 	return cond(instr);
 }
 
@@ -103,20 +107,39 @@ static bool dk_peek_is_type(dk_lexer_t* lx) {
 
 // Parsing utilities
 static void
-dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* msg) {
-	DK_UNUSED(lx, kind, msg);
-	abort();
+dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* fmt, ...) {
+	// TODO: Report line info from deck lexer. (use dk_log_info function).
 
-	// TODO: Check if the next token is `kind`. If not, report `msg` and abort
-	// compilation.
+	if (dk_peek_is_kind(lx, kind)) {
+		return;
+	}
+
+	va_list args;
+	va_start(args, fmt);
+
+	dk_log(DK_LOGGER, DK_ERROR, fmt, args);
+
+	va_end(args);
+
+	exit(EXIT_FAILURE);
 }
 
-static void dk_expect(dk_lexer_t* lx, dk_parser_pred_t cond, const char* msg) {
-	DK_UNUSED(lx, cond, msg);
-	abort();
+static void
+dk_expect(dk_lexer_t* lx, dk_parser_pred_t cond, const char* fmt, ...) {
+	// TODO: Report line info from deck lexer. (use dk_log_info function).
 
-	// TODO: Check if the next token satisfies `cond`. If not, report `msg` and
-	// abort compilation.
+	if (dk_peek_is(lx, cond)) {
+		return;
+	}
+
+	va_list args;
+	va_start(args, fmt);
+
+	dk_log_info_v(DK_LOGGER, DK_ERROR, NULL, NULL, NULL, fmt, args);
+
+	va_end(args);
+
+	exit(EXIT_FAILURE);
 }
 
 // Implementation of core parsing functions
@@ -124,7 +147,9 @@ static dk_instr_t* dk_parse(const char* str) {  // TODO: Pass string + len
 	dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
 	dk_context_t ctx = dk_context_create();     // TODO: Pass by pointer.
 
-	DK_TRACE(ctx.log, "foo");
+	// dk_instr_t peeker;
+	// dk_lexer_peek(&lx, &peeker);
+	// DK_TRACE(ctx.log, "%.*s", dk_instr_strlen(peeker), peeker.str.ptr);
 
 	dk_instr_t* program = dk_parse_program(&ctx, &lx);
 
@@ -144,7 +169,12 @@ static dk_instr_t* dk_parse_program(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_instr_t* expr = dk_parse_expression(ctx, lx);
 	}
 
-	dk_expect_kind(lx, DK_ENDFILE, "unexpected token");
+	dk_instr_t instr;
+	dk_lexer_peek(lx, &instr);
+
+	dk_expect_kind(
+		lx, DK_ENDFILE, "unexpected token '%.*s'", dk_instr_strlen(instr),
+		dk_instr_str(instr));
 
 	return program;
 }
@@ -193,8 +223,15 @@ static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
 
 	else {
 		// TODO: Unreachable
-		DK_ERROR(ctx->log, "unknown token");
-		abort();
+		// DK_ERROR(ctx->log, "unknown token");
+		// abort();
+
+		dk_instr_t instr;
+		dk_lexer_peek(lx, &instr);
+
+		dk_log(
+			DK_LOGGER, DK_ERROR, "unexpected token '%.*s'",
+			dk_instr_strlen(instr), dk_instr_str(instr));
 	}
 
 	return expression;

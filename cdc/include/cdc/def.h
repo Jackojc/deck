@@ -22,4 +22,14 @@ typedef int dk_err_t;  // Used for error handling
 #define DK_UNUSED_IMPL(nargs) DK_UNUSED_IMPL_(nargs)
 #define DK_UNUSED(...) DK_UNUSED_IMPL(DK_VA_NUM_ARGS(__VA_ARGS__))(__VA_ARGS__)
 
+#define DK_STR_IMPL_(x) #x
+#define DK_STR(x) DK_STR_IMPL_(x)
+
+#define DK_CAT_IMPL_(x, y) x##y
+#define DK_CAT(x, y) DK_CAT_IMPL_(x, y)
+
+#define DK_VAR(x) DK_CAT(var_, DK_CAT(x, DK_CAT(__LINE__, _)))
+
+#define DK_LINEINFO "[" __FILE__ ":" DK_STR(__LINE__) "]"
+
 #endif

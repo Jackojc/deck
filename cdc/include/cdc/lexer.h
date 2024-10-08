@@ -91,6 +91,14 @@ struct dk_instr_t {
 	};
 };
 
+static const char* dk_instr_str(dk_instr_t instr) {
+	return instr.str.ptr;
+}
+
+static int dk_instr_strlen(dk_instr_t instr) {
+	return dk_ptrdiff(instr.str.ptr, instr.str.end);
+}
+
 static dk_instr_t
 dk_instr_create(dk_instr_kind_t kind, const char* ptr, const char* end) {
 	return (dk_instr_t){
@@ -103,6 +111,16 @@ dk_instr_create(dk_instr_kind_t kind, const char* ptr, const char* end) {
 		.str.end = end,
 	};
 }
+
+static dk_instr_t DK_INSTR_NONE = (dk_instr_t){
+	.kind = DK_NONE,
+
+	.next = NULL,
+	.prev = NULL,
+
+	.str.ptr = NULL,
+	.str.end = NULL,
+};
 
 // Lexer
 typedef struct {
@@ -426,7 +444,7 @@ static bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // TODO: Make lexer_next produce all tokens and then wrap it in
 // another function which skips whitespace and comments.
-static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_take_any(dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	// Handle EOF
@@ -453,6 +471,30 @@ static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 	}
 
 	lx->peek = next_instr;
+
+	return true;
+}
+
+static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+
+	while (next_instr.kind == DK_WHITESPACE || next_instr.kind == DK_COMMENT) {
+		if (!dk_lexer_take_any(lx, &next_instr)) {
+			if (instr != NULL) {
+				*instr = next_instr;
+			}
+
+			return false;
+		}
+	}
+
+	if (instr != NULL) {
+		*instr = next_instr;
+
+		dk_log(
+			DK_LOGGER, DK_ERROR, "%.*s", dk_instr_strlen(*instr),
+			dk_instr_str(*instr));
+	}
 
 	return true;
 }
