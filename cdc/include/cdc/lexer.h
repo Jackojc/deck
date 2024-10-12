@@ -12,59 +12,63 @@
 
 // Tokens/Instructions
 #define INSTRUCTIONS \
-	X(DK_NONE) \
-	X(DK_ENDFILE) \
+	X(DK_NONE, "none") \
+	X(DK_ENDFILE, "endfile") \
 \
-	X(DK_WHITESPACE) \
-	X(DK_COMMENT) \
+	X(DK_WHITESPACE, "whitespace") \
+	X(DK_COMMENT, "comment") \
 \
 	/* Atoms */ \
-	X(DK_NUMBER) \
-	X(DK_STRING) \
-	X(DK_IDENT) \
-	X(DK_SYMBOL) \
+	X(DK_NUMBER, "number") \
+	X(DK_STRING, "string") \
+	X(DK_IDENT, "ident") \
+	X(DK_SYMBOL, "symbol") \
 \
 	/* Types */ \
-	X(DK_TYPE_NUMBER) \
-	X(DK_TYPE_STRING) \
-	X(DK_TYPE_ANY) \
-	X(DK_TYPE_FN) \
+	X(DK_TYPE_NUMBER, "number type") \
+	X(DK_TYPE_STRING, "string type") \
+	X(DK_TYPE_ANY, "any type") \
+	X(DK_TYPE_FN, "function type") \
 \
 	/* Keywords */ \
-	X(DK_DEFINE) \
-	X(DK_LET) \
+	X(DK_DEFINE, "define") \
+	X(DK_LET, "let") \
 \
 	/* Operators */ \
-	X(DK_OR) \
-	X(DK_AND) \
-	X(DK_NOT) \
+	X(DK_OR, "or") \
+	X(DK_AND, "and") \
+	X(DK_NOT, "not") \
 \
-	X(DK_ADD) \
-	X(DK_SUB) \
-	X(DK_MUL) \
-	X(DK_DIV) \
+	X(DK_ADD, "add") \
+	X(DK_SUB, "sub") \
+	X(DK_MUL, "mul") \
+	X(DK_DIV, "div") \
 \
-	X(DK_COND) \
-	X(DK_APPLY) \
-	X(DK_EQUAL) \
+	X(DK_COND, "cond") \
+	X(DK_APPLY, "apply") \
+	X(DK_EQUAL, "equal") \
 \
-	X(DK_ARROW) \
-	X(DK_TYPE) \
+	X(DK_ARROW, "arrow") \
+	X(DK_TYPE, "type") \
 \
 	/* Grouping */ \
-	X(DK_LPAREN) \
-	X(DK_RPAREN) \
+	X(DK_LPAREN, "lparen") \
+	X(DK_RPAREN, "rparen") \
 \
-	X(DK_LBRACKET) \
-	X(DK_RBRACKET)
+	X(DK_LBRACKET, "lbracket") \
+	X(DK_RBRACKET, "rbracket")
 
-#define X(x) x,
+#define X(x, y) x,
 typedef enum {
 	INSTRUCTIONS
 } dk_instr_kind_t;
 #undef X
 
-#define X(x) [x] = #x,
+#define X(x, y) [x] = #x,
+const char* DK_INSTR_KIND_TO_STR[] = {INSTRUCTIONS};
+#undef X
+
+#define X(x, y) [x] = y,
 const char* DK_INSTR_TO_STR[] = {INSTRUCTIONS};
 #undef X
 
@@ -95,7 +99,7 @@ static const char* dk_instr_str(dk_instr_t instr) {
 	return instr.str.ptr;
 }
 
-static int dk_instr_strlen(dk_instr_t instr) {
+static size_t dk_instr_strlen(dk_instr_t instr) {
 	return dk_ptrdiff(instr.str.ptr, instr.str.end);
 }
 
@@ -267,14 +271,18 @@ static bool dk_produce_if(
 	dk_instr_t* instr,
 	dk_instr_kind_t kind,
 	dk_lexer_pred_t cond) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_if(lx, cond)) {
 		return false;
 	}
 
-	instr->str.end = lx->ptr;
-	instr->kind = kind;
+	next_instr.str.end = lx->ptr;
+	next_instr.kind = kind;
+
+	if (instr != NULL) {
+		*instr = next_instr;
+	}
 
 	return true;
 }
@@ -284,34 +292,42 @@ static bool dk_produce_while(
 	dk_instr_t* instr,
 	dk_instr_kind_t kind,
 	dk_lexer_pred_t cond) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_while(lx, cond)) {
 		return false;
 	}
 
-	instr->str.end = lx->ptr;
-	instr->kind = kind;
+	next_instr.str.end = lx->ptr;
+	next_instr.kind = kind;
+
+	if (instr != NULL) {
+		*instr = next_instr;
+	}
 
 	return true;
 }
 
 static bool dk_produce_str(
 	dk_lexer_t* lx, dk_instr_t* instr, dk_instr_kind_t kind, const char* str) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_str(lx, str)) {
 		return false;
 	}
 
-	instr->str.end = lx->ptr;
-	instr->kind = kind;
+	next_instr.str.end = lx->ptr;
+	next_instr.kind = kind;
+
+	if (instr != NULL) {
+		*instr = next_instr;
+	}
 
 	return true;
 }
 
 static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_if(lx, dk_is_alpha)) {
 		return false;
@@ -319,7 +335,7 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 
 	dk_take_while(lx, dk_is_ident);
 
-	instr->str.end = lx->ptr;
+	next_instr.str.end = lx->ptr;
 
 	// We could have used `dk_produce_str` here to handle these cases
 	// but we want "maximal munch" meaning that we lex the entire
@@ -328,50 +344,54 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 	// as 2 seperate tokens because it sees `let` and stops there.
 
 	// Keywords
-	if (dk_strncmp(instr->str.ptr, instr->str.end, "let")) {
-		instr->kind = DK_LET;
+	if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "let")) {
+		next_instr.kind = DK_LET;
 	}
 
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "def")) {
-		instr->kind = DK_DEFINE;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "def")) {
+		next_instr.kind = DK_DEFINE;
 	}
 
 	// Operators
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "or")) {
-		instr->kind = DK_OR;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "or")) {
+		next_instr.kind = DK_OR;
 	}
 
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "and")) {
-		instr->kind = DK_AND;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "and")) {
+		next_instr.kind = DK_AND;
 	}
 
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "not")) {
-		instr->kind = DK_NOT;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "not")) {
+		next_instr.kind = DK_NOT;
 	}
 
 	// Types
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "int")) {
-		instr->kind = DK_TYPE_NUMBER;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "int")) {
+		next_instr.kind = DK_TYPE_NUMBER;
 	}
 
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "string")) {
-		instr->kind = DK_TYPE_STRING;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "string")) {
+		next_instr.kind = DK_TYPE_STRING;
 	}
 
-	else if (dk_strncmp(instr->str.ptr, instr->str.end, "any")) {
-		instr->kind = DK_TYPE_ANY;
+	else if (dk_strncmp(next_instr.str.ptr, next_instr.str.end, "any")) {
+		next_instr.kind = DK_TYPE_ANY;
 	}
 
 	// User identifier
 	else {
-		instr->kind = DK_IDENT;
+		next_instr.kind = DK_IDENT;
+	}
+
+	if (instr != NULL) {
+		*instr = next_instr;
 	}
 
 	return true;
 }
 
 static bool dk_produce_symbol(dk_lexer_t* lx, dk_instr_t* instr) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_ifc(lx, '#')) {
 		return false;
@@ -379,8 +399,12 @@ static bool dk_produce_symbol(dk_lexer_t* lx, dk_instr_t* instr) {
 
 	dk_take_while(lx, dk_is_ident);
 
-	instr->str.end = lx->ptr;
-	instr->kind = DK_SYMBOL;
+	next_instr.str.end = lx->ptr;
+	next_instr.kind = DK_SYMBOL;
+
+	if (instr != NULL) {
+		*instr = next_instr;
+	}
 
 	return true;
 }
@@ -416,7 +440,7 @@ static bool dk_produce_whitespace(dk_lexer_t* lx, dk_instr_t* instr) {
 }
 
 static bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
-	*instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_str(lx, "#!")) {
 		return false;
@@ -426,8 +450,12 @@ static bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 		return false;
 	}
 
-	instr->str.end = lx->ptr;
-	instr->kind = DK_COMMENT;
+	next_instr.str.end = lx->ptr;
+	next_instr.kind = DK_COMMENT;
+
+	if (instr != NULL) {
+		*instr = next_instr;
+	}
 
 	return true;
 }
@@ -444,8 +472,11 @@ static bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // TODO: Make lexer_next produce all tokens and then wrap it in
 // another function which skips whitespace and comments.
-static bool dk_lexer_take_any(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+
+	while (dk_produce_whitespace(lx, NULL) || dk_produce_comment(lx, NULL)) {
+	}
 
 	// Handle EOF
 	if (lx->ptr >= lx->end) {
@@ -453,14 +484,12 @@ static bool dk_lexer_take_any(dk_lexer_t* lx, dk_instr_t* instr) {
 	}
 
 	// Handle normal tokens
-	else if (!(dk_produce_whitespace(lx, &next_instr) ||
-			   dk_produce_comment(lx, &next_instr) ||
-			   dk_produce_ident(lx, &next_instr) ||
+	else if (!(dk_produce_ident(lx, &next_instr) ||
 			   dk_produce_symbol(lx, &next_instr) ||
 			   dk_produce_number(lx, &next_instr) ||
 			   dk_produce_sigil(lx, &next_instr)))
 	{
-		// TODO: Error in the case of no tokens matched.
+		dk_log(DK_LOGGER, DK_ERROR, "unknown character");
 		return false;
 	}
 
@@ -475,28 +504,27 @@ static bool dk_lexer_take_any(dk_lexer_t* lx, dk_instr_t* instr) {
 	return true;
 }
 
-static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
-	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
+// static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
+// 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
-	while (next_instr.kind == DK_WHITESPACE || next_instr.kind == DK_COMMENT) {
-		if (!dk_lexer_take_any(lx, &next_instr)) {
-			if (instr != NULL) {
-				*instr = next_instr;
-			}
+// 	do {
+// 		DK_WHEREAMI(DK_LOGGER);
+// 		dk_lexer_peek(lx, &next_instr);
 
-			return false;
-		}
-	}
+// 		if (!dk_lexer_take_any(lx, &next_instr)) {
+// 			if (instr != NULL) {
+// 				*instr = next_instr;
+// 			}
 
-	if (instr != NULL) {
-		*instr = next_instr;
+// 			return false;
+// 		}
+// 	} while (next_instr.kind == DK_WHITESPACE || next_instr.kind == DK_COMMENT);
 
-		dk_log(
-			DK_LOGGER, DK_ERROR, "%.*s", dk_instr_strlen(*instr),
-			dk_instr_str(*instr));
-	}
+// 	if (instr != NULL) {
+// 		*instr = next_instr;
+// 	}
 
-	return true;
-}
+// 	return true;
+// }
 
 #endif

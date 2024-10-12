@@ -44,6 +44,8 @@ static char* dk_str_append(char* to, char* from) {
 	if (new_len + 1 >= to_hdr->cap) {
 		new_cap = (new_len / 2) * 3;
 	}
+
+	return NULL;
 }
 
 #endif

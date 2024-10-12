@@ -17,14 +17,14 @@
 #define DK_FG_CYAN "\x1b[36m"
 #define DK_FG_WHITE "\x1b[37m"
 
-#define DK_FG_BLACK_BRIGHT "\x1b[30;1m"
-#define DK_FG_RED_BRIGHT "\x1b[31;1m"
-#define DK_FG_GREEN_BRIGHT "\x1b[32;1m"
-#define DK_FG_YELLOW_BRIGHT "\x1b[33;1m"
-#define DK_FG_BLUE_BRIGHT "\x1b[34;1m"
-#define DK_FG_MAGENTA_BRIGHT "\x1b[35;1m"
-#define DK_FG_CYAN_BRIGHT "\x1b[36;1m"
-#define DK_FG_WHITE_BRIGHT "\x1b[37;1m"
+#define DK_FG_BLACK_BRIGHT "\x1b[90m"
+#define DK_FG_RED_BRIGHT "\x1b[91m"
+#define DK_FG_GREEN_BRIGHT "\x1b[92m"
+#define DK_FG_YELLOW_BRIGHT "\x1b[93m"
+#define DK_FG_BLUE_BRIGHT "\x1b[94m"
+#define DK_FG_MAGENTA_BRIGHT "\x1b[95m"
+#define DK_FG_CYAN_BRIGHT "\x1b[96m"
+#define DK_FG_WHITE_BRIGHT "\x1b[97m"
 
 #define DK_BG_BLACK "\x1b[40m"
 #define DK_BG_RED "\x1b[41m"
@@ -35,34 +35,38 @@
 #define DK_BG_CYAN "\x1b[46m"
 #define DK_BG_WHITE "\x1b[47m"
 
-#define DK_BG_BLACK_BRIGHT "\x1b[40;1m"
-#define DK_BG_RED_BRIGHT "\x1b[41;1m"
-#define DK_BG_GREEN_BRIGHT "\x1b[42;1m"
-#define DK_BG_YELLOW_BRIGHT "\x1b[43;1m"
-#define DK_BG_BLUE_BRIGHT "\x1b[44;1m"
-#define DK_BG_MAGENTA_BRIGHT "\x1b[45;1m"
-#define DK_BG_CYAN_BRIGHT "\x1b[46;1m"
-#define DK_BG_WHITE_BRIGHT "\x1b[47;1m"
+#define DK_BG_BLACK_BRIGHT "\x1b[100m"
+#define DK_BG_RED_BRIGHT "\x1b[101m"
+#define DK_BG_GREEN_BRIGHT "\x1b[102m"
+#define DK_BG_YELLOW_BRIGHT "\x1b[103m"
+#define DK_BG_BLUE_BRIGHT "\x1b[104m"
+#define DK_BG_MAGENTA_BRIGHT "\x1b[105m"
+#define DK_BG_CYAN_BRIGHT "\x1b[106m"
+#define DK_BG_WHITE_BRIGHT "\x1b[107m"
 
 #define LOGLEVELS \
-	X(DK_DEBUG, DK_FG_WHITE "[ ]" DK_RESET, "debug") \
-	X(DK_TRACE, DK_FG_CYAN "[-]" DK_RESET, "trace") \
-	X(DK_WARN, DK_FG_BLUE "[*]" DK_RESET, "warning") \
-	X(DK_ERROR, DK_FG_RED "[!]" DK_RESET, "error") \
-	X(DK_OKAY, DK_FG_GREEN "[^]" DK_RESET, "okay")
+	X(DK_DEBUG, "[.]", "debug", DK_FG_CYAN_BRIGHT) \
+	X(DK_TRACE, "[-]", "trace", DK_FG_MAGENTA_BRIGHT) \
+	X(DK_WARN, "[*]", "warning", DK_FG_BLUE) \
+	X(DK_ERROR, "[!]", "error", DK_FG_RED) \
+	X(DK_OKAY, "[^]", "okay", DK_FG_GREEN)
 
-#define X(x, y, z) x,
+#define X(x, y, z, w) x,
 typedef enum {
 	LOGLEVELS
 } dk_loglevel_t;
 #undef X
 
-#define X(x, y, z) [x] = y,
+#define X(x, y, z, w) [x] = y,
 const char* DK_LOGLEVEL_TO_STR[] = {LOGLEVELS};
 #undef X
 
-#define X(x, y, z) [x] = z,
+#define X(x, y, z, w) [x] = z,
 const char* DK_LOGLEVEL_HUMAN_TO_STR[] = {LOGLEVELS};
+#undef X
+
+#define X(x, y, z, w) [x] = w,
+const char* DK_LOGLEVEL_COLOUR[] = {LOGLEVELS};
 #undef X
 
 #undef LOGLEVELS
@@ -95,8 +99,14 @@ static void dk_log_info_v(
 
 	const char* lvl_s = DK_LOGLEVEL_TO_STR[lvl];
 	const char* lvl_hs = DK_LOGLEVEL_HUMAN_TO_STR[lvl];
+	const char* lvl_col = DK_LOGLEVEL_COLOUR[lvl];
 
-	fprintf(log.dest, "%s " DK_BOLD "%s" DK_RESET, lvl_s, lvl_hs);
+	fprintf(
+		log.dest,
+		DK_BOLD "%s%s" DK_RESET
+				" "
+				"%s%s" DK_RESET,
+		lvl_col, lvl_s, lvl_col, lvl_hs);
 
 	// TODO: Check if these cases actually work.
 	if (filename != NULL && line != NULL) {
@@ -115,9 +125,10 @@ static void dk_log_info_v(
 		fprintf(log.dest, " `%s`", func);
 	}
 
-	fprintf(log.dest, ": ");
-
-	vfprintf(log.dest, fmt, args);
+	if (fmt != NULL) {
+		fprintf(log.dest, ": ");
+		vfprintf(log.dest, fmt, args);
+	}
 
 	fputc('\n', log.dest);
 }
@@ -159,6 +170,18 @@ static void dk_log(dk_logger_t log, dk_loglevel_t lvl, const char* fmt, ...) {
 
 #define DK_OKAY(log, ...) \
 	dk_log_info(log, DK_OKAY, __FILE__, DK_STR(__LINE__), __func__, __VA_ARGS__)
+
+// Find out where you are with a rainbow.
+#define DK_WHEREAMI(log) \
+	dk_log_info( \
+		log, DK_DEBUG, __FILE__, DK_STR(__LINE__), __func__, \
+		DK_FG_RED "Y" DK_FG_RED_BRIGHT "O" DK_FG_YELLOW "U" DK_RESET \
+				  " " DK_FG_GREEN "A" DK_FG_BLUE "R" DK_FG_MAGENTA \
+				  "E" DK_RESET " " DK_FG_MAGENTA_BRIGHT "H" DK_FG_RED \
+				  "E" DK_FG_RED_BRIGHT "R" DK_FG_YELLOW "E" DK_RESET)
+
+#define DK_FUNCTION_ENTER(log) \
+	dk_log_info(log, DK_DEBUG, __FILE__, DK_STR(__LINE__), __func__, NULL)
 
 // TODO: Implement "unimplemented" macro that will unconditionally abort
 // TODO: Implement "unreachable" macro

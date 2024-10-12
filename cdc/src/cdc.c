@@ -85,7 +85,10 @@ int main(int argc, char* argv[]) {
 	// dk_logger_t log = dk_logger_create();
 	// DK_OKAY(log, "foo");
 
-	dk_parse("foo bar");
+	dk_context_t ctx = dk_context_create();
+
+	const char* input = "123 +123";
+	dk_parse(&ctx, input, input + strlen(input));
 
 	return 0;
 }

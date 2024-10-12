@@ -18,7 +18,8 @@ static dk_context_t dk_context_create() {
 }
 
 // Primary call that sets up lexer and context automatically.
-static dk_instr_t* dk_parse(const char* str);
+static dk_instr_t*
+dk_parse(dk_context_t* ctx, const char* str, const char* end);
 
 // Forward declarations for mutual recursion
 // TODO: Make these functions return dk_instr_t* linked lists.
@@ -78,10 +79,6 @@ static bool dk_peek_is(dk_lexer_t* lx, dk_parser_pred_t cond) {
 	dk_instr_t instr;
 	dk_lexer_peek(lx, &instr);
 
-	dk_log(
-		DK_LOGGER, DK_TRACE, "%.*s", dk_instr_strlen(instr),
-		dk_instr_str(instr));
-
 	return cond(instr);
 }
 
@@ -106,13 +103,30 @@ static bool dk_peek_is_type(dk_lexer_t* lx) {
 }
 
 // Parsing utilities
-static void
-dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* fmt, ...) {
+// TODO: `dk_expect_kind` should call `dk_expect_kind` to avoid redundant code.
+static void dk_expect_kind(
+	dk_context_t* ctx, dk_lexer_t* lx, dk_instr_kind_t kind, const char* fmt,
+	...) {
 	// TODO: Report line info from deck lexer. (use dk_log_info function).
 
 	if (dk_peek_is_kind(lx, kind)) {
 		return;
 	}
+
+	dk_instr_t peeker;
+	dk_lexer_peek(lx, &peeker);
+
+	DK_DEBUG(
+		ctx->log,
+		"expected = %s, kind = %s, ptr = %p, end = %p, size = %lu, str = "
+		"'%.*s'",
+		DK_INSTR_KIND_TO_STR[kind],
+		DK_INSTR_KIND_TO_STR[peeker.kind],
+		(void*) peeker.str.ptr,
+		(void*) peeker.str.end,
+		dk_ptrdiff(peeker.str.ptr, peeker.str.end),
+		dk_ptrdiff(peeker.str.ptr, peeker.str.end),
+		peeker.str.ptr);
 
 	va_list args;
 	va_start(args, fmt);
@@ -124,8 +138,9 @@ dk_expect_kind(dk_lexer_t* lx, dk_instr_kind_t kind, const char* fmt, ...) {
 	exit(EXIT_FAILURE);
 }
 
-static void
-dk_expect(dk_lexer_t* lx, dk_parser_pred_t cond, const char* fmt, ...) {
+static void dk_expect(
+	dk_context_t* ctx, dk_lexer_t* lx, dk_parser_pred_t cond, const char* fmt,
+	...) {
 	// TODO: Report line info from deck lexer. (use dk_log_info function).
 
 	if (dk_peek_is(lx, cond)) {
@@ -143,22 +158,25 @@ dk_expect(dk_lexer_t* lx, dk_parser_pred_t cond, const char* fmt, ...) {
 }
 
 // Implementation of core parsing functions
-static dk_instr_t* dk_parse(const char* str) {  // TODO: Pass string + len
-	dk_lexer_t lx = dk_lexer_create(str, str + strlen(str));
-	dk_context_t ctx = dk_context_create();     // TODO: Pass by pointer.
+static dk_instr_t*
+dk_parse(dk_context_t* ctx, const char* str, const char* end) {
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_lexer_t lx = dk_lexer_create(str, end);
 
 	// dk_instr_t peeker;
 	// dk_lexer_peek(&lx, &peeker);
 	// DK_TRACE(ctx.log, "%.*s", dk_instr_strlen(peeker), peeker.str.ptr);
 
-	dk_instr_t* program = dk_parse_program(&ctx, &lx);
+	dk_instr_t* program = dk_parse_program(ctx, &lx);
 
 	return program;
 }
 
 // Core parsing functions
 static dk_instr_t* dk_parse_program(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
+	DK_FUNCTION_ENTER(ctx->log);
+
 	dk_instr_t* program =
 		NULL;  // TODO: Use allocator API to construct linked list.
 
@@ -173,15 +191,16 @@ static dk_instr_t* dk_parse_program(dk_context_t* ctx, dk_lexer_t* lx) {
 	dk_lexer_peek(lx, &instr);
 
 	dk_expect_kind(
-		lx, DK_ENDFILE, "unexpected token '%.*s'", dk_instr_strlen(instr),
-		dk_instr_str(instr));
+		ctx, lx, DK_ENDFILE, "expected EOF but found: '%s'",
+		DK_INSTR_TO_STR[instr.kind]);
 
 	return program;
 }
 
 static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect(lx, dk_is_expression, "expected an expression");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect(ctx, lx, dk_is_expression, "expected an expression");
 
 	dk_instr_t* expression =
 		NULL;  // TODO: Use allocator API to construct linked list.
@@ -202,6 +221,7 @@ static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_lexer_take(lx, &instr);
 
 		// TODO: Handle symbol reference that isn't a builtin
+		DK_WHEREAMI(ctx->log);
 	}
 
 	// Functions
@@ -223,23 +243,23 @@ static dk_instr_t* dk_parse_expression(dk_context_t* ctx, dk_lexer_t* lx) {
 
 	else {
 		// TODO: Unreachable
-		// DK_ERROR(ctx->log, "unknown token");
-		// abort();
-
 		dk_instr_t instr;
 		dk_lexer_peek(lx, &instr);
 
 		dk_log(
-			DK_LOGGER, DK_ERROR, "unexpected token '%.*s'",
-			dk_instr_strlen(instr), dk_instr_str(instr));
+			DK_LOGGER, DK_ERROR, "unexpected token '%s'",
+			DK_INSTR_TO_STR[instr.kind]);
+
+		exit(EXIT_FAILURE);
 	}
 
 	return expression;
 }
 
 static dk_instr_t* dk_parse_function(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect_kind(lx, DK_LBRACKET, "expected '['");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect_kind(ctx, lx, DK_LBRACKET, "expected '['");
 	dk_lexer_take(lx, NULL);
 
 	dk_instr_t* function = NULL;
@@ -251,15 +271,16 @@ static dk_instr_t* dk_parse_function(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_instr_t* expr = dk_parse_expression(ctx, lx);
 	}
 
-	dk_expect_kind(lx, DK_RBRACKET, "expected ']'");
+	dk_expect_kind(ctx, lx, DK_RBRACKET, "expected ']'");
 	dk_lexer_take(lx, NULL);
 
 	return function;
 }
 
 static dk_instr_t* dk_parse_builtin(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect(lx, dk_is_builtin, "expected a built-in");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect(ctx, lx, dk_is_builtin, "expected a built-in");
 
 	// TODO: Allocate this node on the heap and return the pointer.
 	dk_instr_t instr;
@@ -269,8 +290,9 @@ static dk_instr_t* dk_parse_builtin(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_literal(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect(lx, dk_is_literal, "expected a literal");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect(ctx, lx, dk_is_literal, "expected a literal");
 
 	// TODO: Allocate this node on the heap and return the pointer.
 	dk_instr_t instr;
@@ -280,7 +302,8 @@ static dk_instr_t* dk_parse_literal(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_type(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
+	DK_FUNCTION_ENTER(ctx->log);
+
 	dk_instr_t instr;
 
 	if (dk_peek_is_kind(lx, DK_TYPE_NUMBER)) {
@@ -307,11 +330,12 @@ static dk_instr_t* dk_parse_type(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_fntype(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect_kind(lx, DK_TYPE_FN, "expected 'fn'");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect_kind(ctx, lx, DK_TYPE_FN, "expected 'fn'");
 	dk_lexer_take(lx, NULL);
 
-	dk_expect_kind(lx, DK_LPAREN, "expected '('");
+	dk_expect_kind(ctx, lx, DK_LPAREN, "expected '('");
 	dk_lexer_take(lx, NULL);
 
 	// Parse input types
@@ -320,7 +344,7 @@ static dk_instr_t* dk_parse_fntype(dk_context_t* ctx, dk_lexer_t* lx) {
 	}
 
 	// Seperator
-	dk_expect_kind(lx, DK_ARROW, "expected '->'");
+	dk_expect_kind(ctx, lx, DK_ARROW, "expected '->'");
 	dk_lexer_take(lx, NULL);
 
 	// Parse output types
@@ -328,25 +352,26 @@ static dk_instr_t* dk_parse_fntype(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_parse_type(ctx, lx);
 	}
 
-	dk_expect_kind(lx, DK_RPAREN, "expected ')'");
+	dk_expect_kind(ctx, lx, DK_RPAREN, "expected ')'");
 	dk_lexer_take(lx, NULL);
 
 	return NULL;
 }
 
 static dk_instr_t* dk_parse_assertion(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect_kind(lx, DK_TYPE, "expected '$'");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect_kind(ctx, lx, DK_TYPE, "expected '$'");
 	dk_lexer_take(lx, NULL);
 
-	dk_expect_kind(lx, DK_LPAREN, "expected '('");
+	dk_expect_kind(ctx, lx, DK_LPAREN, "expected '('");
 	dk_lexer_take(lx, NULL);
 
 	while (dk_peek_is_type(lx)) {
 		dk_parse_type(ctx, lx);
 	}
 
-	dk_expect_kind(lx, DK_RPAREN, "expected ')'");
+	dk_expect_kind(ctx, lx, DK_RPAREN, "expected ')'");
 	dk_lexer_take(lx, NULL);
 
 	return NULL;  // This function doesn't return anything. It just uses the
@@ -356,8 +381,9 @@ static dk_instr_t* dk_parse_assertion(dk_context_t* ctx, dk_lexer_t* lx) {
 }
 
 static dk_instr_t* dk_parse_swizzle(dk_context_t* ctx, dk_lexer_t* lx) {
-	DK_TRACE(ctx->log, "foo");
-	dk_expect_kind(lx, DK_LPAREN, "expected '('");
+	DK_FUNCTION_ENTER(ctx->log);
+
+	dk_expect_kind(ctx, lx, DK_LPAREN, "expected '('");
 	dk_lexer_take(lx, NULL);
 
 	dk_instr_t* swizzle = NULL;
@@ -368,7 +394,7 @@ static dk_instr_t* dk_parse_swizzle(dk_context_t* ctx, dk_lexer_t* lx) {
 
 	// Parse at least one identifier on the left side. This is because we can
 	// use swizzle to "drop" items from the stack where the right side is empty.
-	dk_expect_kind(lx, DK_IDENT, "expected an identifier");
+	dk_expect_kind(ctx, lx, DK_IDENT, "expected an identifier");
 
 	do {
 		// TODO: Figure out what swizzle should lower to. A series of primitive
@@ -378,7 +404,7 @@ static dk_instr_t* dk_parse_swizzle(dk_context_t* ctx, dk_lexer_t* lx) {
 	} while (dk_peek_is_kind(lx, DK_IDENT));
 
 	// Seperator
-	dk_expect_kind(lx, DK_ARROW, "expected '->'");
+	dk_expect_kind(ctx, lx, DK_ARROW, "expected '->'");
 	dk_lexer_take(lx, NULL);
 
 	// Parse new stack slots.
@@ -387,7 +413,7 @@ static dk_instr_t* dk_parse_swizzle(dk_context_t* ctx, dk_lexer_t* lx) {
 		dk_lexer_take(lx, &instr);
 	}
 
-	dk_expect_kind(lx, DK_RPAREN, "expected ')'");
+	dk_expect_kind(ctx, lx, DK_RPAREN, "expected ')'");
 	dk_lexer_take(lx, NULL);
 
 	return swizzle;
