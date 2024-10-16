@@ -82,13 +82,13 @@ int main(int argc, char* argv[]) {
 	// 	dk_instr_print(&lx, instr);
 	// }
 
-	// dk_logger_t log = dk_logger_create();
-	// DK_OKAY(log, "foo");
-
-	dk_context_t ctx = dk_context_create();
-
 	const char* input = "123 +123";
-	dk_parse(&ctx, input, input + strlen(input));
+
+	dk_logger_t log = dk_logger_create("global");
+	dk_context_t ctx = dk_context_create();
+	dk_lexer_t lx = dk_lexer_create(&log, input, input + strlen(input));
+
+	dk_parse(&log, &ctx, &lx);
 
 	return 0;
 }

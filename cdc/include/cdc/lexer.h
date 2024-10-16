@@ -136,9 +136,10 @@ typedef struct {
 	dk_instr_t peek;
 } dk_lexer_t;
 
-static bool dk_lexer_take(dk_lexer_t*, dk_instr_t*);
+static bool dk_lexer_take(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr);
 
-static dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
+static dk_lexer_t
+dk_lexer_create(dk_logger_t* log, const char* ptr, const char* end) {
 	dk_lexer_t lx = (dk_lexer_t){
 		.src = ptr,
 		.ptr = ptr,
@@ -146,7 +147,7 @@ static dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
 		.peek = dk_instr_create(DK_NONE, ptr, ptr),
 	};
 
-	dk_lexer_take(&lx, NULL);
+	dk_lexer_take(log, &lx, NULL);
 
 	return lx;
 }
@@ -155,24 +156,24 @@ static dk_lexer_t dk_lexer_create(const char* ptr, const char* end) {
 // TODO: Make these functions returned a formatted buffer rather than
 // calling printf within.
 // TODO: Print position info for tokens?
-static void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
-	printf(
-		"kind = %s, ptr = %p, end = %p, size = %lu\n",
-		DK_INSTR_TO_STR[instr.kind],
-		(void*) instr.str.ptr,
-		(void*) instr.str.end,
-		dk_ptrdiff(instr.str.ptr, instr.str.end));
-}
+// static void dk_instr_print(dk_lexer_t* lx, dk_instr_t instr) {
+// 	printf(
+// 		"kind = %s, ptr = %p, end = %p, size = %lu\n",
+// 		DK_INSTR_TO_STR[instr.kind],
+// 		(void*) instr.str.ptr,
+// 		(void*) instr.str.end,
+// 		dk_ptrdiff(instr.str.ptr, instr.str.end));
+// }
 
-static void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
-	// TODO: Print lexer state in some readable fashion for debugging.
-	// Some ideas:
-	// - Print all tokens and then reset lexer state (set `ptr` to `src`)
-	// - Print pointers, peek token
-	// - Total number of tokens
-	// - Line count
-	// - Percentage of file that has been lexed
-}
+// static void dk_lexer_print(dk_lexer_t* lx, dk_instr_t instr) {
+// 	// TODO: Print lexer state in some readable fashion for debugging.
+// 	// Some ideas:
+// 	// - Print all tokens and then reset lexer state (set `ptr` to `src`)
+// 	// - Print pointers, peek token
+// 	// - Total number of tokens
+// 	// - Line count
+// 	// - Percentage of file that has been lexed
+// }
 
 // Basic stream interaction
 static char dk_peek(dk_lexer_t* lx) {
@@ -267,6 +268,7 @@ static bool dk_is_ident(char c) {
 
 // Token producers
 static bool dk_produce_if(
+	dk_logger_t* log,
 	dk_lexer_t* lx,
 	dk_instr_t* instr,
 	dk_instr_kind_t kind,
@@ -288,6 +290,7 @@ static bool dk_produce_if(
 }
 
 static bool dk_produce_while(
+	dk_logger_t* log,
 	dk_lexer_t* lx,
 	dk_instr_t* instr,
 	dk_instr_kind_t kind,
@@ -309,7 +312,8 @@ static bool dk_produce_while(
 }
 
 static bool dk_produce_str(
-	dk_lexer_t* lx, dk_instr_t* instr, dk_instr_kind_t kind, const char* str) {
+	dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr, dk_instr_kind_t kind,
+	const char* str) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_str(lx, str)) {
@@ -326,7 +330,8 @@ static bool dk_produce_str(
 	return true;
 }
 
-static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool
+dk_produce_ident(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_if(lx, dk_is_alpha)) {
@@ -390,7 +395,8 @@ static bool dk_produce_ident(dk_lexer_t* lx, dk_instr_t* instr) {
 	return true;
 }
 
-static bool dk_produce_symbol(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool
+dk_produce_symbol(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_ifc(lx, '#')) {
@@ -409,12 +415,14 @@ static bool dk_produce_symbol(dk_lexer_t* lx, dk_instr_t* instr) {
 	return true;
 }
 
-static bool dk_produce_number(dk_lexer_t* lx, dk_instr_t* instr) {
-	return dk_produce_while(lx, instr, DK_NUMBER, dk_is_digit);
+static bool
+dk_produce_number(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
+	return dk_produce_while(log, lx, instr, DK_NUMBER, dk_is_digit);
 }
 
-static bool dk_produce_sigil(dk_lexer_t* lx, dk_instr_t* instr) {
-#define DK_PRODUCE_SIGIL(s, k) dk_produce_str(lx, instr, s, k)
+static bool
+dk_produce_sigil(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
+#define DK_PRODUCE_SIGIL(s, k) dk_produce_str(log, lx, instr, s, k)
 	// clang-format off
 
 	return DK_PRODUCE_SIGIL(DK_ARROW,    "->") ||
@@ -435,11 +443,13 @@ static bool dk_produce_sigil(dk_lexer_t* lx, dk_instr_t* instr) {
 #undef DK_PRODUCE_SIGIL
 }
 
-static bool dk_produce_whitespace(dk_lexer_t* lx, dk_instr_t* instr) {
-	return dk_produce_while(lx, instr, DK_WHITESPACE, dk_is_whitespace);
+static bool
+dk_produce_whitespace(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
+	return dk_produce_while(log, lx, instr, DK_WHITESPACE, dk_is_whitespace);
 }
 
-static bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool
+dk_produce_comment(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
 	if (!dk_take_str(lx, "#!")) {
@@ -462,7 +472,7 @@ static bool dk_produce_comment(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // Core lexer interface
 // TODO: Reconsider implementation. Is it safe to always return true?
-static bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_peek(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
 	if (instr != NULL) {
 		*instr = lx->peek;
 	}
@@ -472,11 +482,12 @@ static bool dk_lexer_peek(dk_lexer_t* lx, dk_instr_t* instr) {
 
 // TODO: Make lexer_next produce all tokens and then wrap it in
 // another function which skips whitespace and comments.
-static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
+static bool dk_lexer_take(dk_logger_t* log, dk_lexer_t* lx, dk_instr_t* instr) {
 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
 
-	while (dk_produce_whitespace(lx, NULL) || dk_produce_comment(lx, NULL)) {
-	}
+	while (dk_produce_whitespace(log, lx, NULL) ||
+		   dk_produce_comment(log, lx, NULL))
+	{}
 
 	// Handle EOF
 	if (lx->ptr >= lx->end) {
@@ -484,47 +495,24 @@ static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
 	}
 
 	// Handle normal tokens
-	else if (!(dk_produce_ident(lx, &next_instr) ||
-			   dk_produce_symbol(lx, &next_instr) ||
-			   dk_produce_number(lx, &next_instr) ||
-			   dk_produce_sigil(lx, &next_instr)))
+	else if (!(dk_produce_ident(log, lx, &next_instr) ||
+			   dk_produce_symbol(log, lx, &next_instr) ||
+			   dk_produce_number(log, lx, &next_instr) ||
+			   dk_produce_sigil(log, lx, &next_instr)))
 	{
-		dk_log(DK_LOGGER, DK_ERROR, "unknown character");
+		dk_log(log, DK_ERROR, "unknown character");
 		return false;
 	}
 
 	// Return previously peeked token and then store newly
 	// lexed token to be used on the next call to peek.
 	if (instr != NULL) {
-		dk_lexer_peek(lx, instr);
+		dk_lexer_peek(log, lx, instr);
 	}
 
 	lx->peek = next_instr;
 
 	return true;
 }
-
-// static bool dk_lexer_take(dk_lexer_t* lx, dk_instr_t* instr) {
-// 	dk_instr_t next_instr = dk_instr_create(DK_NONE, lx->ptr, lx->ptr);
-
-// 	do {
-// 		DK_WHEREAMI(DK_LOGGER);
-// 		dk_lexer_peek(lx, &next_instr);
-
-// 		if (!dk_lexer_take_any(lx, &next_instr)) {
-// 			if (instr != NULL) {
-// 				*instr = next_instr;
-// 			}
-
-// 			return false;
-// 		}
-// 	} while (next_instr.kind == DK_WHITESPACE || next_instr.kind == DK_COMMENT);
-
-// 	if (instr != NULL) {
-// 		*instr = next_instr;
-// 	}
-
-// 	return true;
-// }
 
 #endif

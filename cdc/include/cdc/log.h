@@ -72,14 +72,15 @@ const char* DK_LOGLEVEL_COLOUR[] = {LOGLEVELS};
 #undef LOGLEVELS
 
 typedef struct {
-	FILE* dest;
+	const char* name;  // Name of logger for filtering by pass or stage
+	FILE* dest;        // Destination to log to (usually stderr)
 	dk_loglevel_t level;
 	size_t indent;
-	// TODO: Add field to track pass name.
 } dk_logger_t;
 
-static dk_logger_t dk_logger_create() {
+static dk_logger_t dk_logger_create(const char* name) {
 	return (dk_logger_t){
+		.name = name,
 		.dest = NULL,
 		.level = DK_DEBUG,
 		.indent = 0,
@@ -87,14 +88,14 @@ static dk_logger_t dk_logger_create() {
 }
 
 static void dk_log_info_v(
-	dk_logger_t log, dk_loglevel_t lvl, const char* filename, const char* line,
+	dk_logger_t* log, dk_loglevel_t lvl, const char* filename, const char* line,
 	const char* func, const char* fmt, va_list args) {
-	if (lvl < log.level) {
+	if (lvl < log->level) {
 		return;
 	}
 
-	if (log.dest == NULL) {
-		log.dest = stderr;  // Default location for logging.
+	if (log->dest == NULL) {
+		log->dest = stderr;  // Default location for logging.
 	}
 
 	const char* lvl_s = DK_LOGLEVEL_TO_STR[lvl];
@@ -102,7 +103,7 @@ static void dk_log_info_v(
 	const char* lvl_col = DK_LOGLEVEL_COLOUR[lvl];
 
 	fprintf(
-		log.dest,
+		log->dest,
 		DK_BOLD "%s%s" DK_RESET
 				" "
 				"%s%s" DK_RESET,
@@ -110,31 +111,31 @@ static void dk_log_info_v(
 
 	// TODO: Check if these cases actually work.
 	if (filename != NULL && line != NULL) {
-		fprintf(log.dest, " [%s:%s]", filename, line);
+		fprintf(log->dest, " [%s:%s]", filename, line);
 	}
 
 	else if (filename != NULL && line == NULL) {
-		fprintf(log.dest, " [%s]", filename);
+		fprintf(log->dest, " [%s]", filename);
 	}
 
 	else if (filename == NULL && line != NULL) {
-		fprintf(log.dest, " [%s]", line);
+		fprintf(log->dest, " [%s]", line);
 	}
 
 	if (func != NULL) {
-		fprintf(log.dest, " `%s`", func);
+		fprintf(log->dest, " `%s`", func);
 	}
 
 	if (fmt != NULL) {
-		fprintf(log.dest, ": ");
-		vfprintf(log.dest, fmt, args);
+		fprintf(log->dest, ": ");
+		vfprintf(log->dest, fmt, args);
 	}
 
-	fputc('\n', log.dest);
+	fputc('\n', log->dest);
 }
 
 static void dk_log_info(
-	dk_logger_t log, dk_loglevel_t lvl, const char* filename, const char* line,
+	dk_logger_t* log, dk_loglevel_t lvl, const char* filename, const char* line,
 	const char* func, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
@@ -144,7 +145,7 @@ static void dk_log_info(
 	va_end(args);
 }
 
-static void dk_log(dk_logger_t log, dk_loglevel_t lvl, const char* fmt, ...) {
+static void dk_log(dk_logger_t* log, dk_loglevel_t lvl, const char* fmt, ...) {
 	va_list args;
 	va_start(args, fmt);
 
@@ -191,10 +192,10 @@ static void dk_log(dk_logger_t log, dk_loglevel_t lvl, const char* fmt, ...) {
 // TODO: Debug macro (might not be reasonable)
 
 // Global logger instance
-static dk_logger_t DK_LOGGER = (dk_logger_t){
-	.dest = NULL,
-	.level = DK_DEBUG,
-	.indent = 0,
-};
+// static dk_logger_t DK_LOGGER = (dk_logger_t){
+// 	.dest = NULL,
+// 	.level = DK_DEBUG,
+// 	.indent = 0,
+// };
 
 #endif
